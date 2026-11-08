@@ -1,0 +1,13 @@
+package io.github.michalmszczepanski.project22_card_game_1;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class Project22CardGame1Application {
+
+	public static void main(String[] args) {
+		SpringApplication.run(Project22CardGame1Application.class, args);
+	}
+
+}
