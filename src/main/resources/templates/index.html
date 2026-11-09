@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="pl" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Karciana Gra</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f4f5f7; }
+    </style>
+</head>
+<body>
+<div class="container py-4" style="max-width: 480px;">
+
+<nav class="d-flex justify-content-end small mb-2">
+    <span th:if="${loggedIn}">
+        Zalogowany jako <strong th:text="${username}"></strong>
+        &middot; <a th:href="@{/packs}">Pakiety</a> &middot; <a th:href="@{/stats}">Statystyki</a> &middot;
+        <form method="post" th:action="@{/logout}" class="d-inline">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+            <button type="submit" class="btn btn-link btn-sm p-0 align-baseline">Wyloguj</button>
+        </form>
+    </span>
+    <span th:unless="${loggedIn}">
+        <a th:href="@{/login}">Zaloguj</a> / <a th:href="@{/register}">Zarejestruj</a> &middot; <a th:href="@{/packs}">Pakiety</a>
+    </span>
+</nav>
+
+<h1 class="text-center mb-1">🃏 Karciana Gra</h1>
+<p class="text-center text-muted small mb-4">Nie musisz być zabawny — musisz znać swoją ekipę. Zgadnij, kto napisał co 😏</p>
+
+<div class="alert alert-danger" th:if="${error}" th:text="${error}"></div>
+<div class="alert alert-success" th:if="${info}" th:text="${info}"></div>
+
+<div class="card shadow-sm mb-3">
+    <div class="card-body">
+        <h2 class="card-title h5">Stwórz nową grę</h2>
+        <form method="post" th:action="@{/games}">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+            <input type="text" class="form-control mb-3" name="nickname" placeholder="Twój nick" required maxlength="20">
+
+            <div th:if="${loggedIn and !ownedPaidPacks.isEmpty()}" class="mb-3">
+                <p class="mb-1 small text-muted">Dodatkowe pakiety (masz odblokowane):</p>
+                <div class="form-check" th:each="pack : ${ownedPaidPacks}">
+                    <input class="form-check-input" type="checkbox" name="packIds" th:value="${pack.id}" th:id="${'pack-' + pack.id}">
+                    <label class="form-check-label" th:for="${'pack-' + pack.id}" th:text="${pack.name}"></label>
+                </div>
+            </div>
+            <p th:if="${!loggedIn}" class="small text-muted">Darmowy pakiet "Generyczny" zawsze w grze. <a th:href="@{/login}">Zaloguj się</a>, aby dodać kupione pakiety.</p>
+
+            <button type="submit" class="btn btn-primary btn-lg w-100">Stwórz grę</button>
+        </form>
+    </div>
+</div>
+
+<div class="card shadow-sm mb-3">
+    <div class="card-body">
+        <h2 class="card-title h5">Dołącz do gry</h2>
+        <form method="post" th:action="@{/games/join}">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+            <input type="text" class="form-control mb-2 text-uppercase" name="code" placeholder="Kod gry" required maxlength="5">
+            <input type="text" class="form-control mb-3" name="nickname" placeholder="Twój nick" required maxlength="20">
+            <button type="submit" class="btn btn-outline-primary btn-lg w-100">Dołącz</button>
+        </form>
+    </div>
+</div>
+
+<p class="text-center text-muted small">Max <span th:text="${maxPlayers}"></span> graczy w pokoju.</p>
+</div>
+</body>
+</html>
