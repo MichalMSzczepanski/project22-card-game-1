@@ -6,6 +6,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.CsrfConfigurer;
 import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -15,7 +16,7 @@ import org.springframework.security.web.SecurityFilterChain;
 /**
  * Two filter chains on purpose: the H2 console needs relaxed framing/CSRF and is
  * only reachable at all when {@code spring.h2.console.enabled=true} (off by
- * default, see application.properties) — isolating it here means the main app
+ * default, see application.yaml) — isolating it here means the main app
  * chain keeps Spring Security's normal defaults (deny framing, CSRF everywhere).
  */
 @Configuration
@@ -33,7 +34,7 @@ public class SecurityConfig {
         http
                 .securityMatcher("/h2-console/**")
                 .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
-                .csrf(csrf -> csrf.disable())
+                .csrf(CsrfConfigurer::disable)
                 .headers(headers -> headers.frameOptions(HeadersConfigurer.FrameOptionsConfig::sameOrigin));
         return http.build();
     }
@@ -57,7 +58,7 @@ public class SecurityConfig {
                         .permitAll());
 
         // Only wired up once a provider (google, later facebook, ...) is actually
-        // configured in application.properties — otherwise there is no
+        // configured in application.yaml — otherwise there is no
         // ClientRegistrationRepository bean and enabling oauth2Login() would
         // fail application startup.
         if (clientRegistrations.getIfAvailable() != null) {

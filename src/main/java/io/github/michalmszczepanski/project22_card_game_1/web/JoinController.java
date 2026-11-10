@@ -2,12 +2,16 @@ package io.github.michalmszczepanski.project22_card_game_1.web;
 
 import io.github.michalmszczepanski.project22_card_game_1.card.CardPack;
 import io.github.michalmszczepanski.project22_card_game_1.card.PackAccessService;
-import io.github.michalmszczepanski.project22_card_game_1.game.Game;
+import io.github.michalmszczepanski.project22_card_game_1.game.GameNotFoundException;
+import io.github.michalmszczepanski.project22_card_game_1.game.GameProperties;
 import io.github.michalmszczepanski.project22_card_game_1.game.GameService;
+import io.github.michalmszczepanski.project22_card_game_1.game.InvalidGameActionException;
 import io.github.michalmszczepanski.project22_card_game_1.game.Player;
 import io.github.michalmszczepanski.project22_card_game_1.security.CurrentUserResolver;
 import io.github.michalmszczepanski.project22_card_game_1.user.AppUser;
 import jakarta.servlet.http.HttpSession;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -19,22 +23,21 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import java.util.List;
 
 @Controller
+@RequiredArgsConstructor
+@Slf4j
 public class JoinController {
 
     private final GameService gameService;
     private final PackAccessService packAccessService;
     private final CurrentUserResolver currentUserResolver;
-
-    public JoinController(GameService gameService, PackAccessService packAccessService, CurrentUserResolver currentUserResolver) {
-        this.gameService = gameService;
-        this.packAccessService = packAccessService;
-        this.currentUserResolver = currentUserResolver;
-    }
+    private final GameProperties gameProperties;
 
     @GetMapping("/")
     public String index(Authentication authentication, Model model) {
         AppUser user = currentUserResolver.resolve(authentication);
-        model.addAttribute("maxPlayers", Game.MAX_PLAYERS);
+        model.addAttribute("maxPlayers", gameProperties.players().max());
+        model.addAttribute("maxNicknameLength", gameProperties.maxNicknameLength());
+        model.addAttribute("codeLength", gameProperties.codeLength());
         model.addAttribute("loggedIn", user != null);
         model.addAttribute("username", user == null ? null : user.getUsername());
         if (user != null) {
@@ -48,15 +51,21 @@ public class JoinController {
     public String createGame(@RequestParam String nickname,
                               @RequestParam(required = false) List<Long> packIds,
                               Authentication authentication,
-                              HttpSession session) {
+                              HttpSession session,
+                              RedirectAttributes redirectAttributes) {
         AppUser user = currentUserResolver.resolve(authentication);
         List<CardPack> activePacks = packAccessService.resolveSelection(user, packIds);
 
-        Game game = gameService.createGame(activePacks);
-        Player player = gameService.join(game.getId(), nickname, user == null ? null : user.getId());
-        session.setAttribute("playerId", player.getId());
-        session.setAttribute("gameId", game.getId());
-        return "redirect:/games/" + game.getId();
+        try {
+            Player player = gameService.createGameAndJoin(activePacks, nickname, user == null ? null : user.getId());
+            session.setAttribute("playerId", player.getId());
+            session.setAttribute("gameId", player.getGame().getId());
+            return "redirect:/games/" + player.getGame().getId();
+        } catch (InvalidGameActionException e) {
+            log.debug("Nie udało się stworzyć gry — {}", e.getMessage());
+            redirectAttributes.addFlashAttribute("error", e.getMessage());
+            return "redirect:/";
+        }
     }
 
     @PostMapping("/games/join")
@@ -72,7 +81,8 @@ public class JoinController {
             session.setAttribute("playerId", player.getId());
             session.setAttribute("gameId", gameId);
             return "redirect:/games/" + gameId;
-        } catch (RuntimeException e) {
+        } catch (InvalidGameActionException | GameNotFoundException e) {
+            log.debug("Gra {}: nie udało się dołączyć — {}", gameId, e.getMessage());
             redirectAttributes.addFlashAttribute("error", e.getMessage());
             return "redirect:/";
         }

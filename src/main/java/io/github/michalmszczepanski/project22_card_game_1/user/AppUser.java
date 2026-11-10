@@ -6,31 +6,36 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.time.Instant;
 
 @Entity
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class AppUser {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Getter
     private Long id;
 
+    @Getter
     private String username;
 
     /** Null for accounts created via an OAuth2 provider (no local password). */
+    @Getter
     private String passwordHash;
 
     @Enumerated(EnumType.STRING)
+    @Getter
     private AuthProvider authProvider;
 
     /** The provider's subject/user id. Null for LOCAL accounts. */
     private String providerId;
 
     private Instant createdAt;
-
-    protected AppUser() {
-    }
 
     /** Local username+password account. */
     public AppUser(String username, String passwordHash) {
@@ -46,29 +51,5 @@ public class AppUser {
         this.authProvider = authProvider;
         this.providerId = providerId;
         this.createdAt = Instant.now();
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public String getUsername() {
-        return username;
-    }
-
-    public String getPasswordHash() {
-        return passwordHash;
-    }
-
-    public AuthProvider getAuthProvider() {
-        return authProvider;
-    }
-
-    public String getProviderId() {
-        return providerId;
-    }
-
-    public Instant getCreatedAt() {
-        return createdAt;
     }
 }

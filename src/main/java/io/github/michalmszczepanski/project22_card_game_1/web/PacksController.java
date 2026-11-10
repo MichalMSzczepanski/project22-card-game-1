@@ -7,8 +7,8 @@ import io.github.michalmszczepanski.project22_card_game_1.card.Purchase;
 import io.github.michalmszczepanski.project22_card_game_1.card.PurchaseRepository;
 import io.github.michalmszczepanski.project22_card_game_1.security.CurrentUserResolver;
 import io.github.michalmszczepanski.project22_card_game_1.user.AppUser;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -20,21 +20,13 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import java.util.List;
 
 @Controller
+@RequiredArgsConstructor
+@Slf4j
 public class PacksController {
-
-    private static final Logger log = LoggerFactory.getLogger(PacksController.class);
 
     private final CardPackRepository cardPackRepository;
     private final PurchaseRepository purchaseRepository;
     private final CurrentUserResolver currentUserResolver;
-
-    public PacksController(CardPackRepository cardPackRepository,
-                            PurchaseRepository purchaseRepository,
-                            CurrentUserResolver currentUserResolver) {
-        this.cardPackRepository = cardPackRepository;
-        this.purchaseRepository = purchaseRepository;
-        this.currentUserResolver = currentUserResolver;
-    }
 
     @GetMapping("/packs")
     public String list(Authentication authentication, Model model) {

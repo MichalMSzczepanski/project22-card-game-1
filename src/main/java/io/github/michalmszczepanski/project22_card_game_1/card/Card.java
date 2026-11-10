@@ -8,8 +8,13 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 @Entity
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Card {
 
     @Id
@@ -25,28 +30,9 @@ public class Card {
     @JoinColumn(name = "pack_id")
     private CardPack pack;
 
-    protected Card() {
-    }
-
     public Card(String text, CardType type, CardPack pack) {
         this.text = text;
         this.type = type;
         this.pack = pack;
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public String getText() {
-        return text;
-    }
-
-    public CardType getType() {
-        return type;
-    }
-
-    public CardPack getPack() {
-        return pack;
     }
 }

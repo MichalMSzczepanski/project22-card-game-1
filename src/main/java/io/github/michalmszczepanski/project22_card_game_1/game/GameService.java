@@ -8,8 +8,8 @@ import io.github.michalmszczepanski.project22_card_game_1.card.PackAudience;
 import io.github.michalmszczepanski.project22_card_game_1.stats.GameScoreRecord;
 import io.github.michalmszczepanski.project22_card_game_1.stats.GameScoreRecordRepository;
 import io.github.michalmszczepanski.project22_card_game_1.user.AppUserRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,10 +23,9 @@ import java.util.stream.Collectors;
 
 @Service
 @Transactional
+@RequiredArgsConstructor
+@Slf4j
 public class GameService {
-
-    private static final Logger log = LoggerFactory.getLogger(GameService.class);
-    private static final int MAX_NICKNAME_LENGTH = 20;
 
     private final Random random = new Random();
 
@@ -35,15 +34,7 @@ public class GameService {
     private final CardRepository cardRepository;
     private final GameScoreRecordRepository gameScoreRecordRepository;
     private final AppUserRepository appUserRepository;
-
-    public GameService(GameRepository gameRepository, GameCodeGenerator gameCodeGenerator, CardRepository cardRepository,
-                        GameScoreRecordRepository gameScoreRecordRepository, AppUserRepository appUserRepository) {
-        this.gameRepository = gameRepository;
-        this.gameCodeGenerator = gameCodeGenerator;
-        this.cardRepository = cardRepository;
-        this.gameScoreRecordRepository = gameScoreRecordRepository;
-        this.appUserRepository = appUserRepository;
-    }
+    private final GameProperties gameProperties;
 
     @Transactional(readOnly = true)
     public Game getGame(String gameId) {
@@ -67,13 +58,13 @@ public class GameService {
         if (game.getStatus() != GameStatus.LOBBY) {
             throw new InvalidGameActionException("Gra już się zaczęła, nie można dołączyć.");
         }
-        if (game.isFull()) {
-            throw new InvalidGameActionException("Pokój jest pełny (max " + Game.MAX_PLAYERS + " graczy).");
+        if (game.isFull(gameProperties.players().max())) {
+            throw new InvalidGameActionException("Pokój jest pełny (max " + gameProperties.players().max() + " graczy).");
         }
 
         String trimmed = nickname == null ? "" : nickname.trim();
-        if (trimmed.isEmpty() || trimmed.length() > MAX_NICKNAME_LENGTH) {
-            throw new InvalidGameActionException("Nick musi mieć 1-" + MAX_NICKNAME_LENGTH + " znaków.");
+        if (trimmed.isEmpty() || trimmed.length() > gameProperties.maxNicknameLength()) {
+            throw new InvalidGameActionException("Nick musi mieć 1-" + gameProperties.maxNicknameLength() + " znaków.");
         }
 
         Player player = new Player(trimmed, appUserId);
@@ -82,13 +73,22 @@ public class GameService {
         return player;
     }
 
+    /**
+     * Creates a game and immediately joins its creator as the first player, as one transaction —
+     * if the nickname is invalid, the whole thing rolls back (no orphaned empty game left in the DB).
+     */
+    public Player createGameAndJoin(List<CardPack> activePacks, String nickname, Long appUserId) {
+        Game game = createGame(activePacks);
+        return join(game.getId(), nickname, appUserId);
+    }
+
     public void startGame(String gameId) {
         Game game = requireGame(gameId);
         if (game.getStatus() != GameStatus.LOBBY) {
             throw new InvalidGameActionException("Gra już wystartowała.");
         }
-        if (game.activePlayers().size() < Game.MIN_PLAYERS_TO_START) {
-            throw new InvalidGameActionException("Potrzeba minimum " + Game.MIN_PLAYERS_TO_START + " graczy.");
+        if (game.activePlayers().size() < gameProperties.players().min()) {
+            throw new InvalidGameActionException("Potrzeba minimum " + gameProperties.players().min() + " graczy.");
         }
 
         for (Player player : game.activePlayers()) {
@@ -155,7 +155,7 @@ public class GameService {
         if (round.hasRanked(submission)) {
             throw new InvalidGameActionException("Ta odpowiedź już ma przyznaną pozycję.");
         }
-        if (rank < 1 || rank > round.getSubmissions().size()) {
+        if (rank < 1 || rank > round.podiumSize(gameProperties.scoring().podiumSize())) {
             throw new InvalidGameActionException("Nieprawidłowa pozycja.");
         }
         if (round.usedRanks().contains(rank)) {
@@ -165,7 +165,7 @@ public class GameService {
         round.addRanking(new Ranking(submission, rank));
         log.debug("Gra {}: prowadzący przyznał pozycję {} odpowiedzi {}", gameId, rank, submissionId);
 
-        if (round.hasFinishedRanking()) {
+        if (round.hasFinishedRanking(gameProperties.scoring().podiumSize())) {
             reveal(game, round);
         }
     }
@@ -190,7 +190,7 @@ public class GameService {
         }
 
         if (game.getStatus() == GameStatus.ANSWERING
-                && Instant.now().isAfter(round.getPhaseStartedAt().plusSeconds(Game.ANSWER_TIMEOUT_SECONDS))) {
+                && Instant.now().isAfter(round.getPhaseStartedAt().plusSeconds(gameProperties.timeouts().answerSeconds()))) {
             for (Player player : game.answerersInOrder()) {
                 if (!round.hasSubmitted(player) && !player.getHand().isEmpty()) {
                     Card card = player.getHand().get(random.nextInt(player.getHand().size()));
@@ -201,7 +201,7 @@ public class GameService {
             }
             advanceToRankingIfComplete(game, round);
         } else if (game.getStatus() == GameStatus.RANKING
-                && Instant.now().isAfter(round.getPhaseStartedAt().plusSeconds(Game.RANKING_TIMEOUT_SECONDS))) {
+                && Instant.now().isAfter(round.getPhaseStartedAt().plusSeconds(gameProperties.timeouts().rankingSeconds()))) {
             log.info("Gra {}: czas na ustalenie kolejności minął, odkrywam wyniki z tym co jest", gameId);
             reveal(game, round);
         }
@@ -211,10 +211,10 @@ public class GameService {
         Game game = requireGame(gameId);
         requireStatus(game, GameStatus.REVEALED);
 
-        if (game.getCurrentRound().getNumber() >= Game.TOTAL_ROUNDS) {
+        if (game.getCurrentRound().getNumber() >= gameProperties.totalRounds()) {
             game.setStatus(GameStatus.FINISHED);
             recordFinalScores(game);
-            log.info("Gra {} zakończona po {} rundach", gameId, Game.TOTAL_ROUNDS);
+            log.info("Gra {} zakończona po {} rundach", gameId, gameProperties.totalRounds());
             return;
         }
 
@@ -238,29 +238,25 @@ public class GameService {
             if (player.getAppUserId() == null) {
                 continue;
             }
-            appUserRepository.findById(player.getAppUserId()).ifPresent(user -> {
-                gameScoreRecordRepository.save(
-                        new GameScoreRecord(user, game.getId(), player.getPoints(), player.getPoints() == max));
-            });
+            appUserRepository.findById(player.getAppUserId()).ifPresent(user ->
+                    gameScoreRecordRepository.save(
+                            new GameScoreRecord(user, game.getId(), player.getPoints(), player.getPoints() == max)));
         }
     }
 
     /**
-     * Each ranked submission's author gets points equal to how many places better
-     * than last their rank is: with N submissions, rank 1 (best) is worth N
-     * points, rank N (worst) is worth 1. An unranked submission (e.g. a round
-     * that timed out before the leader finished) simply scores 0.
+     * Only the podium (top N, or fewer if there aren't N submissions, N = {@code game.scoring.podium-size})
+     * scores — points per place from {@code game.scoring.podium-points}. An unranked submission (outside
+     * the podium, or a round that timed out before the leader placed it) simply scores 0.
      */
     private void scoreRound(Round round) {
-        int total = round.getSubmissions().size();
         for (Ranking ranking : round.getRankings()) {
-            int points = total - ranking.getRank() + 1;
-            ranking.getSubmission().getAuthor().addPoints(points);
+            ranking.getSubmission().getAuthor().addPoints(Round.pointsForRank(ranking.getRank(), gameProperties.scoring().podiumPoints()));
         }
     }
 
     private void dealUpToHandSize(Game game, Player player) {
-        int needed = Game.HAND_SIZE - player.getHand().size();
+        int needed = gameProperties.handSize() - player.getHand().size();
         player.getHand().addAll(drawCards(game, CardType.ANSWER, needed));
     }
 
@@ -368,7 +364,7 @@ public class GameService {
     public void pruneDisconnectedPlayers(String gameId) {
         Game game = requireGame(gameId);
         Set<String> exempt = currentlyExpectedToAct(game);
-        Instant cutoff = Instant.now().minusSeconds(Game.DISCONNECT_TIMEOUT_SECONDS);
+        Instant cutoff = Instant.now().minusSeconds(gameProperties.timeouts().disconnectSeconds());
 
         for (Player player : List.copyOf(game.activePlayers())) {
             if (exempt.contains(player.getId())) {
@@ -391,7 +387,7 @@ public class GameService {
                     .map(Player::getId)
                     .collect(Collectors.toSet());
         }
-        if (game.getStatus() == GameStatus.RANKING && !round.hasFinishedRanking()) {
+        if (game.getStatus() == GameStatus.RANKING && !round.hasFinishedRanking(gameProperties.scoring().podiumSize())) {
             return Set.of(round.getLeader().getId());
         }
         return Set.of();

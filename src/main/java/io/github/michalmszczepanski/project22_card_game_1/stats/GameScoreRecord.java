@@ -7,6 +7,9 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.time.Instant;
 
@@ -15,23 +18,26 @@ import java.time.Instant;
  * aren't recorded — this is the account perk that makes /stats possible.
  */
 @Entity
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class GameScoreRecord {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Getter
     private Long id;
 
     @ManyToOne(optional = false)
     @JoinColumn(name = "user_id")
+    @Getter
     private AppUser user;
 
+    @Getter
     private String gameId;
+    @Getter
     private int points;
+    @Getter
     private boolean won;
     private Instant playedAt;
-
-    protected GameScoreRecord() {
-    }
 
     public GameScoreRecord(AppUser user, String gameId, int points, boolean won) {
         this.user = user;
@@ -39,29 +45,5 @@ public class GameScoreRecord {
         this.points = points;
         this.won = won;
         this.playedAt = Instant.now();
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public AppUser getUser() {
-        return user;
-    }
-
-    public String getGameId() {
-        return gameId;
-    }
-
-    public int getPoints() {
-        return points;
-    }
-
-    public boolean isWon() {
-        return won;
-    }
-
-    public Instant getPlayedAt() {
-        return playedAt;
     }
 }

@@ -7,7 +7,5 @@ import java.util.List;
 
 public interface CardRepository extends JpaRepository<Card, Long> {
 
-    List<Card> findByType(CardType type);
-
     List<Card> findByTypeAndPack_IdIn(CardType type, Collection<Long> packIds);
 }

@@ -1,8 +1,10 @@
 package io.github.michalmszczepanski.project22_card_game_1.web;
 
 import io.github.michalmszczepanski.project22_card_game_1.user.InvalidRegistrationException;
+import io.github.michalmszczepanski.project22_card_game_1.user.UserProperties;
 import io.github.michalmszczepanski.project22_card_game_1.user.UserService;
 import io.github.michalmszczepanski.project22_card_game_1.user.UsernameTakenException;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.stereotype.Controller;
@@ -13,15 +15,12 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 @Controller
+@RequiredArgsConstructor
 public class AuthController {
 
     private final UserService userService;
     private final ObjectProvider<ClientRegistrationRepository> clientRegistrations;
-
-    public AuthController(UserService userService, ObjectProvider<ClientRegistrationRepository> clientRegistrations) {
-        this.userService = userService;
-        this.clientRegistrations = clientRegistrations;
-    }
+    private final UserProperties userProperties;
 
     @GetMapping("/login")
     public String login(Model model) {
@@ -30,7 +29,10 @@ public class AuthController {
     }
 
     @GetMapping("/register")
-    public String registerForm() {
+    public String registerForm(Model model) {
+        model.addAttribute("minUsernameLength", userProperties.minUsernameLength());
+        model.addAttribute("maxUsernameLength", userProperties.maxUsernameLength());
+        model.addAttribute("minPasswordLength", userProperties.minPasswordLength());
         return "register";
     }
 

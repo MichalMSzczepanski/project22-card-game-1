@@ -1,6 +1,7 @@
 package io.github.michalmszczepanski.project22_card_game_1.web;
 
 import io.github.michalmszczepanski.project22_card_game_1.game.Game;
+import io.github.michalmszczepanski.project22_card_game_1.game.GameProperties;
 import io.github.michalmszczepanski.project22_card_game_1.game.GameStatus;
 import io.github.michalmszczepanski.project22_card_game_1.game.Player;
 import io.github.michalmszczepanski.project22_card_game_1.game.Ranking;
@@ -42,7 +43,8 @@ public record GameViewModel(
         int answerersTotal,
         int rankedCount,
         int ranksNeededTotal,
-        String justLeftNickname
+        String justLeftNickname,
+        int pollIntervalSeconds
 ) {
 
     public record PlayerRow(String nickname, int points, boolean leader, boolean me) {
@@ -61,7 +63,7 @@ public record GameViewModel(
     public record RevealRow(String authorNickname, String cardText, int rank, int points) {
     }
 
-    public static GameViewModel of(Game game, String currentPlayerId) {
+    public static GameViewModel of(Game game, String currentPlayerId, GameProperties properties) {
         Round round = game.getCurrentRound();
         Optional<Player> me = Optional.ofNullable(currentPlayerId).flatMap(game::findPlayer).filter(p -> !p.isLeft());
 
@@ -89,23 +91,21 @@ public record GameViewModel(
             }
 
             if (game.getStatus() == GameStatus.RANKING && isLeader) {
-                int total = round.getSubmissions().size();
                 rankTargets = round.unrankedSubmissions().stream()
                         .map(s -> new RankTarget(s.getId(), s.getCard().getText()))
                         .toList();
-                rankOptions = IntStream.rangeClosed(1, total)
+                rankOptions = IntStream.rangeClosed(1, round.podiumSize(properties.scoring().podiumSize()))
                         .filter(rank -> !round.usedRanks().contains(rank))
-                        .mapToObj(rank -> new RankOption(rank, total - rank + 1))
+                        .mapToObj(rank -> new RankOption(rank, Round.pointsForRank(rank, properties.scoring().podiumPoints())))
                         .toList();
             }
         }
 
         if (round != null && game.getStatus() == GameStatus.REVEALED) {
-            int total = round.getSubmissions().size();
             reveal = round.getSubmissions().stream()
                     .map(s -> rankingFor(round, s)
                             .map(r -> new RevealRow(s.getAuthor().getNickname(), s.getCard().getText(),
-                                    r.getRank(), total - r.getRank() + 1))
+                                    r.getRank(), Round.pointsForRank(r.getRank(), properties.scoring().podiumPoints())))
                             .orElseGet(() -> new RevealRow(s.getAuthor().getNickname(), s.getCard().getText(), 0, 0)))
                     .toList();
         }
@@ -132,14 +132,14 @@ public record GameViewModel(
 
         int answerersTotal = game.answerersInOrder().size();
         int answeredCount = round == null ? 0 : round.getSubmissions().size();
-        // The leader places every submission (one rank each), so the target is the same as answerersTotal.
-        int ranksNeededTotal = answerersTotal;
+        // The leader only places the podium (top N, or fewer submissions than that).
+        int ranksNeededTotal = round == null ? 0 : round.podiumSize(properties.scoring().podiumSize());
         int rankedCount = round == null ? 0 : round.getRankings().size();
 
         int secondsLeft = 0;
         if (round != null) {
-            int timeoutSeconds = game.getStatus() == GameStatus.ANSWERING ? Game.ANSWER_TIMEOUT_SECONDS
-                    : game.getStatus() == GameStatus.RANKING ? Game.RANKING_TIMEOUT_SECONDS : -1;
+            int timeoutSeconds = game.getStatus() == GameStatus.ANSWERING ? properties.timeouts().answerSeconds()
+                    : game.getStatus() == GameStatus.RANKING ? properties.timeouts().rankingSeconds() : -1;
             if (timeoutSeconds >= 0) {
                 long elapsed = Duration.between(round.getPhaseStartedAt(), Instant.now()).getSeconds();
                 secondsLeft = (int) Math.max(0, timeoutSeconds - elapsed);
@@ -148,7 +148,7 @@ public record GameViewModel(
 
         String justLeftNickname = null;
         if (game.getLastLeftNickname() != null
-                && Duration.between(game.getLastLeftAt(), Instant.now()).getSeconds() < Game.LEAVE_BANNER_SECONDS) {
+                && Duration.between(game.getLastLeftAt(), Instant.now()).getSeconds() < properties.timeouts().leaveBannerSeconds()) {
             justLeftNickname = game.getLastLeftNickname();
         }
 
@@ -156,7 +156,7 @@ public record GameViewModel(
                 game.getId(),
                 game.getStatus(),
                 round == null ? 0 : round.getNumber(),
-                Game.TOTAL_ROUNDS,
+                properties.totalRounds(),
                 round == null ? null : round.getQuestionCard().getText(),
                 players,
                 me.isPresent(),
@@ -166,7 +166,7 @@ public record GameViewModel(
                 rankTargets,
                 rankOptions,
                 reveal,
-                game.getStatus() == GameStatus.LOBBY && game.activePlayers().size() >= Game.MIN_PLAYERS_TO_START,
+                game.getStatus() == GameStatus.LOBBY && game.activePlayers().size() >= properties.players().min(),
                 autoRefresh,
                 winners,
                 game.isFamilyMode(),
@@ -176,7 +176,8 @@ public record GameViewModel(
                 answerersTotal,
                 rankedCount,
                 ranksNeededTotal,
-                justLeftNickname
+                justLeftNickname,
+                properties.pollIntervalSeconds()
         );
     }
 

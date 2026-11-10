@@ -30,6 +30,9 @@ class GameServiceTest {
     private GameService gameService;
 
     @Autowired
+    private GameProperties gameProperties;
+
+    @Autowired
     private CardPackRepository cardPackRepository;
 
     @Autowired
@@ -70,12 +73,12 @@ class GameServiceTest {
     void playsOneFullRoundWithCorrectScoring() {
         Game game = gameService.createGame(freePacks());
         Player leader = gameService.join(game.getId(), "Ala");
-        Player p2 = gameService.join(game.getId(), "Bartek");
-        Player p3 = gameService.join(game.getId(), "Celina");
+        gameService.join(game.getId(), "Bartek");
+        gameService.join(game.getId(), "Celina");
 
         gameService.startGame(game.getId());
         assertThat(game.getStatus()).isEqualTo(GameStatus.ANSWERING);
-        assertThat(leader.getHand()).hasSize(Game.HAND_SIZE);
+        assertThat(leader.getHand()).hasSize(gameProperties.handSize());
 
         Round round1 = game.getCurrentRound();
         Player roundLeader = round1.getLeader();
@@ -99,23 +102,59 @@ class GameServiceTest {
                 .filter(s -> s.getAuthor().getId().equals(a1.getId()))
                 .findFirst().orElseThrow();
 
-        // leader puts a2's submission in 1st place (best) — worth 2 points with 2 answerers
+        // leader puts a2's submission in 1st place (best) — podium 1st place is worth 3 points
         gameService.submitRanking(game.getId(), roundLeader.getId(), submissionOfA2.getId(), 1);
         assertThat(game.getStatus()).isEqualTo(GameStatus.RANKING);
 
-        // a1's submission takes the remaining, last place — worth 1 point
+        // a1's submission takes 2nd place (only 2 answerers, so no 3rd place exists) — worth 2 points
         gameService.submitRanking(game.getId(), roundLeader.getId(), submissionOfA1.getId(), 2);
         assertThat(game.getStatus()).isEqualTo(GameStatus.REVEALED);
 
         assertThat(roundLeader.getPoints()).isEqualTo(0);
-        assertThat(a1.getPoints()).isEqualTo(1);
-        assertThat(a2.getPoints()).isEqualTo(2);
+        assertThat(a1.getPoints()).isEqualTo(2);
+        assertThat(a2.getPoints()).isEqualTo(3);
 
         gameService.nextRound(game.getId());
         assertThat(game.getStatus()).isEqualTo(GameStatus.ANSWERING);
         assertThat(game.getCurrentRound().getNumber()).isEqualTo(2);
-        assertThat(a1.getHand()).hasSize(Game.HAND_SIZE);
-        assertThat(a2.getHand()).hasSize(Game.HAND_SIZE);
+        assertThat(a1.getHand()).hasSize(gameProperties.handSize());
+        assertThat(a2.getHand()).hasSize(gameProperties.handSize());
+    }
+
+    @Test
+    void podiumCapsScoringAtTopThreeWhenThereAreMoreAnswerers() {
+        Game game = gameService.createGame(freePacks());
+        gameService.join(game.getId(), "Ala");
+        gameService.join(game.getId(), "Bartek");
+        gameService.join(game.getId(), "Celina");
+        gameService.join(game.getId(), "Dawid");
+        gameService.join(game.getId(), "Erik");
+        gameService.startGame(game.getId());
+
+        Round round = game.getCurrentRound();
+        Player roundLeader = round.getLeader();
+        List<Player> answerers = game.answerersInOrder();
+        assertThat(answerers).hasSize(4);
+
+        for (Player answerer : answerers) {
+            gameService.submitAnswer(game.getId(), answerer.getId(), answerer.getHand().get(0).getId());
+        }
+        assertThat(game.getStatus()).isEqualTo(GameStatus.RANKING);
+
+        List<Submission> submissions = round.getSubmissions();
+        // Only 3 podium places exist even though there are 4 submissions — the leader ranks 1st..3rd.
+        gameService.submitRanking(game.getId(), roundLeader.getId(), submissions.get(0).getId(), 1);
+        gameService.submitRanking(game.getId(), roundLeader.getId(), submissions.get(1).getId(), 2);
+        assertThat(game.getStatus()).isEqualTo(GameStatus.RANKING);
+        gameService.submitRanking(game.getId(), roundLeader.getId(), submissions.get(2).getId(), 3);
+
+        // Round reveals as soon as the podium (3 places) is filled — no 4th place to assign.
+        assertThat(game.getStatus()).isEqualTo(GameStatus.REVEALED);
+
+        assertThat(submissions.get(0).getAuthor().getPoints()).isEqualTo(3);
+        assertThat(submissions.get(1).getAuthor().getPoints()).isEqualTo(2);
+        assertThat(submissions.get(2).getAuthor().getPoints()).isEqualTo(1);
+        assertThat(submissions.get(3).getAuthor().getPoints()).isEqualTo(0);
     }
 
     @Test
@@ -238,7 +277,7 @@ class GameServiceTest {
         gameService.join(game.getId(), "Celina");
         gameService.startGame(game.getId());
 
-        for (int round = 1; round <= Game.TOTAL_ROUNDS; round++) {
+        for (int round = 1; round <= gameProperties.totalRounds(); round++) {
             playOneRound(game);
             gameService.nextRound(game.getId());
         }
@@ -265,7 +304,7 @@ class GameServiceTest {
         int handSizeBefore = answerers.get(0).getHand().size();
 
         game.getCurrentRound().setPhaseStartedAt(
-                java.time.Instant.now().minusSeconds(Game.ANSWER_TIMEOUT_SECONDS + 5));
+                java.time.Instant.now().minusSeconds(gameProperties.timeouts().answerSeconds() + 5));
         gameService.checkTimeout(game.getId());
 
         assertThat(game.getStatus()).isEqualTo(GameStatus.RANKING);
@@ -288,7 +327,7 @@ class GameServiceTest {
 
         // nobody ranks in time
         game.getCurrentRound().setPhaseStartedAt(
-                java.time.Instant.now().minusSeconds(Game.RANKING_TIMEOUT_SECONDS + 5));
+                java.time.Instant.now().minusSeconds(gameProperties.timeouts().rankingSeconds() + 5));
         gameService.checkTimeout(game.getId());
 
         assertThat(game.getStatus()).isEqualTo(GameStatus.REVEALED);
@@ -366,11 +405,10 @@ class GameServiceTest {
         gameService.startGame(game.getId());
 
         List<Player> answerers = game.answerersInOrder();
-        Player a1 = answerers.get(0);
         Player a2 = answerers.get(1);
 
         // a2 hasn't answered yet — their screen isn't auto-refreshing, so staleness is expected, not a disconnect.
-        a2.setLastSeenAt(java.time.Instant.now().minusSeconds(Game.DISCONNECT_TIMEOUT_SECONDS + 5));
+        a2.setLastSeenAt(java.time.Instant.now().minusSeconds(gameProperties.timeouts().disconnectSeconds() + 5));
 
         gameService.pruneDisconnectedPlayers(game.getId());
 
@@ -393,7 +431,7 @@ class GameServiceTest {
 
         // a1 already answered — now just waiting/spectating, so their screen keeps auto-refreshing.
         // Going quiet for that long means their tab actually closed.
-        a1.setLastSeenAt(java.time.Instant.now().minusSeconds(Game.DISCONNECT_TIMEOUT_SECONDS + 5));
+        a1.setLastSeenAt(java.time.Instant.now().minusSeconds(gameProperties.timeouts().disconnectSeconds() + 5));
 
         gameService.pruneDisconnectedPlayers(game.getId());
 

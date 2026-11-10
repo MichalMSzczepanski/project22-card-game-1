@@ -2,9 +2,12 @@ package io.github.michalmszczepanski.project22_card_game_1.web;
 
 import io.github.michalmszczepanski.project22_card_game_1.game.Game;
 import io.github.michalmszczepanski.project22_card_game_1.game.GameNotFoundException;
+import io.github.michalmszczepanski.project22_card_game_1.game.GameProperties;
 import io.github.michalmszczepanski.project22_card_game_1.game.GameService;
 import io.github.michalmszczepanski.project22_card_game_1.game.InvalidGameActionException;
 import jakarta.servlet.http.HttpSession;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -17,13 +20,12 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 @Controller
 @RequestMapping("/games/{gameId}")
+@RequiredArgsConstructor
+@Slf4j
 public class GameController {
 
     private final GameService gameService;
-
-    public GameController(GameService gameService) {
-        this.gameService = gameService;
-    }
+    private final GameProperties gameProperties;
 
     @GetMapping
     public String view(@PathVariable String gameId, HttpSession session, Model model,
@@ -34,7 +36,7 @@ public class GameController {
             gameService.checkTimeout(gameId);
             gameService.pruneDisconnectedPlayers(gameId);
             Game game = gameService.getGame(gameId);
-            model.addAttribute("view", GameViewModel.of(game, playerId));
+            model.addAttribute("view", GameViewModel.of(game, playerId, gameProperties));
             return "game";
         } catch (GameNotFoundException e) {
             return goHome(session, redirectAttributes, "Gra zakończyła się — wszyscy wyszli.");
@@ -48,7 +50,7 @@ public class GameController {
             gameService.checkTimeout(gameId);
             gameService.pruneDisconnectedPlayers(gameId);
             Game game = gameService.getGame(gameId);
-            model.addAttribute("view", GameViewModel.of(game, null));
+            model.addAttribute("view", GameViewModel.of(game, null, gameProperties));
             return "tv";
         } catch (GameNotFoundException e) {
             return goHome(null, redirectAttributes, "Gra zakończyła się — wszyscy wyszli.");
@@ -62,6 +64,7 @@ public class GameController {
             gameService.leave(gameId, playerId);
         } catch (InvalidGameActionException e) {
             // already gone (e.g. pruned moments earlier) — fine, we're leaving anyway
+            log.debug("Gra {}: {} próbował opuścić grę, ale już go nie było — {}", gameId, playerId, e.getMessage());
         }
         return goHome(session, redirectAttributes, "Opuściłeś grę.");
     }
@@ -129,8 +132,10 @@ public class GameController {
         try {
             action.run();
         } catch (InvalidGameActionException e) {
+            log.debug("Gra {}: akcja odrzucona — {}", gameId, e.getMessage());
             redirectAttributes.addFlashAttribute("error", e.getMessage());
         } catch (ObjectOptimisticLockingFailureException e) {
+            log.warn("Gra {}: konflikt współbieżnej edycji, gracz musi spróbować jeszcze raz", gameId);
             redirectAttributes.addFlashAttribute("error", "Ktoś inny właśnie coś zmienił w grze — spróbuj jeszcze raz.");
         }
         return "redirect:/games/" + gameId;

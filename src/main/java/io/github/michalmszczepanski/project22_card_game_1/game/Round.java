@@ -10,6 +10,10 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -19,35 +23,41 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 @Entity
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Round {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Getter
     private Long id;
 
+    @Getter
     private int number;
 
     @ManyToOne
     @JoinColumn(name = "leader_id")
+    @Getter
     private Player leader;
 
     @ManyToOne
     @JoinColumn(name = "question_card_id")
+    @Getter
     private Card questionCard;
 
     /** When the CURRENT phase (answering or guessing) started — reset on each phase change, drives the round timer. */
+    @Getter
+    @Setter
     private Instant phaseStartedAt = Instant.now();
 
     // Small, bounded aggregate (max 5 players) — eager fetch avoids LazyInitializationException
     // once the request's transaction has closed (we deliberately run with open-in-view=false).
     @OneToMany(mappedBy = "round", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
-    private List<Submission> submissions = new ArrayList<>();
+    @Getter
+    private final List<Submission> submissions = new ArrayList<>();
 
     @OneToMany(mappedBy = "round", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
-    private List<Ranking> rankings = new ArrayList<>();
-
-    protected Round() {
-    }
+    @Getter
+    private final List<Ranking> rankings = new ArrayList<>();
 
     public Round(int number, Player leader, Card questionCard) {
         this.number = number;
@@ -55,36 +65,8 @@ public class Round {
         this.questionCard = questionCard;
     }
 
-    public Instant getPhaseStartedAt() {
-        return phaseStartedAt;
-    }
-
     public void restartPhaseTimer() {
         this.phaseStartedAt = Instant.now();
-    }
-
-    public void setPhaseStartedAt(Instant phaseStartedAt) {
-        this.phaseStartedAt = phaseStartedAt;
-    }
-
-    public int getNumber() {
-        return number;
-    }
-
-    public Player getLeader() {
-        return leader;
-    }
-
-    public Card getQuestionCard() {
-        return questionCard;
-    }
-
-    public List<Submission> getSubmissions() {
-        return submissions;
-    }
-
-    public List<Ranking> getRankings() {
-        return rankings;
     }
 
     public void addSubmission(Submission submission) {
@@ -119,7 +101,17 @@ public class Round {
         return submissions.stream().filter(s -> !hasRanked(s)).toList();
     }
 
-    public boolean hasFinishedRanking() {
-        return rankings.size() == submissions.size();
+    /** How many podium places exist this round — {@code configuredPodiumSize}, or fewer if there aren't that many submissions to rank. */
+    public int podiumSize(int configuredPodiumSize) {
+        return Math.min(configuredPodiumSize, submissions.size());
+    }
+
+    /** Points for podium place {@code rank} (1 = best). Only valid for {@code rank} in {@code 1..podiumSize()}. */
+    public static int pointsForRank(int rank, List<Integer> podiumPoints) {
+        return podiumPoints.get(rank - 1);
+    }
+
+    public boolean hasFinishedRanking(int configuredPodiumSize) {
+        return rankings.size() == podiumSize(configuredPodiumSize);
     }
 }

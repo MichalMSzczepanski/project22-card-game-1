@@ -29,6 +29,9 @@ class GameServiceMultiTransactionTest {
     private GameService gameService;
 
     @Autowired
+    private GameProperties gameProperties;
+
+    @Autowired
     private CardPackRepository cardPackRepository;
 
     @Test
@@ -44,16 +47,15 @@ class GameServiceMultiTransactionTest {
 
         gameService.startGame(gameId);
 
-        for (int round = 1; round <= Game.TOTAL_ROUNDS; round++) {
+        for (int round = 1; round <= gameProperties.totalRounds(); round++) {
             game = gameService.getGame(gameId);
-            Round currentRound = game.getCurrentRound();
             for (Player p : game.answerersInOrder()) {
                 var card = p.getHand().get(random.nextInt(p.getHand().size()));
                 gameService.submitAnswer(gameId, p.getId(), card.getId());
             }
 
             game = gameService.getGame(gameId);
-            currentRound = game.getCurrentRound();
+            Round currentRound = game.getCurrentRound();
             int rank = 1;
             for (Submission s : currentRound.getSubmissions()) {
                 gameService.submitRanking(gameId, currentRound.getLeader().getId(), s.getId(), rank++);

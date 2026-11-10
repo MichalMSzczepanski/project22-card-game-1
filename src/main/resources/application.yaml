@@ -1,0 +1,87 @@
+spring:
+  application:
+    name: project22-card-game-1
+
+  # File-based H2 so game/user data survives a restart (not just an in-memory demo).
+  # Swapping to Postgres later is a config-only change: same JPA entities/repositories,
+  # just point these 4 lines at Postgres (url/driver-class-name/username/password) and
+  # flip ddl-auto to "validate" behind a real migration tool (e.g. Flyway) instead.
+  datasource:
+    url: jdbc:h2:file:./data/carddb
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+
+  # Sessions in the same DB too — a restart used to log everyone out and un-join
+  # every player even though the game data itself survived. Wiring is in
+  # SessionConfig (@EnableJdbcHttpSession) since Boot 4.x no longer auto-configures
+  # this from a property. Schema is our own idempotent copy (see session-schema-h2.sql)
+  # so repeated restarts don't fail trying to re-create existing tables.
+  session:
+    timeout: 8h
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:session-schema-h2.sql
+
+  # H2 console is off by default (OWASP A05: an unauthenticated SQL console on a
+  # running app is a serious exposure). Run with --spring.profiles.active=dev
+  # locally (see application-dev.yaml) to turn it on.
+  h2:
+    console:
+      enabled: false
+
+  # --- OAuth2 social login (optional) ---------------------------------------
+  # Unconfigured by default: with no registration below, no ClientRegistrationRepository
+  # bean exists and SecurityConfig skips oauth2Login() entirely (password login still works).
+  # Fill in real credentials (e.g. via env vars) and restart to turn Google login on;
+  # Facebook works the same way once Spring's CommonOAuth2Provider defaults apply —
+  # no code changes needed (see CustomOAuth2UserService).
+  # security:
+  #   oauth2:
+  #     client:
+  #       registration:
+  #         google:
+  #           client-id: ${GOOGLE_CLIENT_ID}
+  #           client-secret: ${GOOGLE_CLIENT_SECRET}
+  #           scope: openid,profile,email
+  #         facebook:
+  #           client-id: ${FACEBOOK_CLIENT_ID}
+  #           client-secret: ${FACEBOOK_CLIENT_SECRET}
+  #           scope: email,public_profile
+
+logging:
+  level:
+    root: INFO
+    io.github.michalmszczepanski.project22_card_game_1: DEBUG
+
+# Game rules — see GameProperties. Change here instead of recompiling (e.g. to
+# raise player count before ROADMAP.md's "do 10 graczy" lands in code).
+game:
+  players:
+    min: 3
+    max: 5
+  hand-size: 7
+  total-rounds: 20
+  timeouts:
+    answer-seconds: 60
+    ranking-seconds: 45
+    disconnect-seconds: 15
+    leave-banner-seconds: 10
+  max-nickname-length: 20
+  code-length: 5
+  poll-interval-seconds: 3
+  scoring:
+    podium-size: 3
+    podium-points: [3, 2, 1]
+
+# Account/registration rules — see UserProperties.
+user:
+  min-username-length: 3
+  max-username-length: 30
+  min-password-length: 8

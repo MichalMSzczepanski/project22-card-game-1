@@ -2,7 +2,12 @@
 # Never enable the H2 console like this in a deployed environment (see
 # SecurityConfig's h2ConsoleFilterChain — it's permitAll and only safe because
 # the console is off by default).
-spring.h2.console.enabled=true
-spring.h2.console.path=/h2-console
+spring:
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
 
-logging.level.io.github.michalmszczepanski.project22_card_game_1=DEBUG
+logging:
+  level:
+    io.github.michalmszczepanski.project22_card_game_1: DEBUG

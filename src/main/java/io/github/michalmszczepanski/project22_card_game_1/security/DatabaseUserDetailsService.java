@@ -2,24 +2,20 @@ package io.github.michalmszczepanski.project22_card_game_1.security;
 
 import io.github.michalmszczepanski.project22_card_game_1.user.AppUser;
 import io.github.michalmszczepanski.project22_card_game_1.user.AppUserRepository;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @Service
+@RequiredArgsConstructor
+@Slf4j
 public class DatabaseUserDetailsService implements UserDetailsService {
 
-    private static final Logger log = LoggerFactory.getLogger(DatabaseUserDetailsService.class);
-
     private final AppUserRepository appUserRepository;
-
-    public DatabaseUserDetailsService(AppUserRepository appUserRepository) {
-        this.appUserRepository = appUserRepository;
-    }
 
     @Override
     public UserDetails loadUserByUsername(String username) {

@@ -1,5 +1,6 @@
 package io.github.michalmszczepanski.project22_card_game_1.card;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Component;
@@ -13,6 +14,7 @@ import java.util.List;
  * 300 cards; this is a representative subset to get the MVP running end to end.
  */
 @Component
+@RequiredArgsConstructor
 public class CardSeeder implements ApplicationRunner {
 
     private static final List<String> QUESTION_CARDS = List.of(
@@ -453,11 +455,6 @@ public class CardSeeder implements ApplicationRunner {
 
     private final CardPackRepository cardPackRepository;
     private final CardRepository cardRepository;
-
-    public CardSeeder(CardPackRepository cardPackRepository, CardRepository cardRepository) {
-        this.cardPackRepository = cardPackRepository;
-        this.cardRepository = cardRepository;
-    }
 
     @Override
     public void run(ApplicationArguments args) {
