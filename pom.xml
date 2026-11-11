@@ -83,6 +83,14 @@
 			<scope>test</scope>
 		</dependency>
 
+		<!-- Boot 4's modularization split @AutoConfigureMockMvc (and the rest of the MockMvc test
+		     slice) out of spring-boot-test-autoconfigure into this module. -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-webmvc-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+
 		<dependency>
 			<groupId>org.springframework.security</groupId>
 			<artifactId>spring-security-test</artifactId>

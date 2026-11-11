@@ -41,11 +41,14 @@ public class GameService {
         return requireGame(gameId);
     }
 
-    public Game createGame(List<CardPack> activePacks) {
-        Game game = new Game(gameCodeGenerator.generate());
+    public Game createGame(List<CardPack> activePacks, int totalRounds) {
+        if (totalRounds < 1 || totalRounds > gameProperties.maxTotalRounds()) {
+            throw new InvalidGameActionException("Liczba rund musi być między 1 i " + gameProperties.maxTotalRounds() + ".");
+        }
+        Game game = new Game(gameCodeGenerator.generate(), totalRounds);
         game.setActivePacks(activePacks);
         game = gameRepository.save(game);
-        log.info("Nowa gra {} (pakiety: {})", game.getId(), activePacks.stream().map(CardPack::getName).toList());
+        log.info("Nowa gra {} (pakiety: {}, rund: {})", game.getId(), activePacks.stream().map(CardPack::getName).toList(), totalRounds);
         return game;
     }
 
@@ -77,15 +80,18 @@ public class GameService {
      * Creates a game and immediately joins its creator as the first player, as one transaction —
      * if the nickname is invalid, the whole thing rolls back (no orphaned empty game left in the DB).
      */
-    public Player createGameAndJoin(List<CardPack> activePacks, String nickname, Long appUserId) {
-        Game game = createGame(activePacks);
+    public Player createGameAndJoin(List<CardPack> activePacks, String nickname, Long appUserId, int totalRounds) {
+        Game game = createGame(activePacks, totalRounds);
         return join(game.getId(), nickname, appUserId);
     }
 
-    public void startGame(String gameId) {
+    public void startGame(String gameId, String playerId) {
         Game game = requireGame(gameId);
         if (game.getStatus() != GameStatus.LOBBY) {
             throw new InvalidGameActionException("Gra już wystartowała.");
+        }
+        if (!game.isHost(playerId)) {
+            throw new InvalidGameActionException("Tylko twórca gry może ją wystartować.");
         }
         if (game.activePlayers().size() < gameProperties.players().min()) {
             throw new InvalidGameActionException("Potrzeba minimum " + gameProperties.players().min() + " graczy.");
@@ -173,6 +179,7 @@ public class GameService {
     private void reveal(Game game, Round round) {
         scoreRound(round);
         game.setStatus(GameStatus.REVEALED);
+        round.restartPhaseTimer();
         log.info("Gra {}: runda {} zakończona, wyniki odkryte", game.getId(), round.getNumber());
     }
 
@@ -207,14 +214,25 @@ public class GameService {
         }
     }
 
-    public void nextRound(String gameId) {
+    /**
+     * For {@code game.timeouts.reveal-seconds} after a round reveals, only that round's leader may
+     * advance to the next one — after that window, anyone can (covers the leader going quiet).
+     */
+    public void nextRound(String gameId, String playerId) {
         Game game = requireGame(gameId);
         requireStatus(game, GameStatus.REVEALED);
+        Round round = game.getCurrentRound();
 
-        if (game.getCurrentRound().getNumber() >= gameProperties.totalRounds()) {
+        boolean leaderWindowOpen = Instant.now().isBefore(
+                round.getPhaseStartedAt().plusSeconds(gameProperties.timeouts().revealSeconds()));
+        if (leaderWindowOpen && !round.getLeader().getId().equals(playerId)) {
+            throw new InvalidGameActionException("Jeszcze chwila — najpierw może kliknąć prowadzący tej rundy.");
+        }
+
+        if (round.getNumber() >= game.getTotalRounds()) {
             game.setStatus(GameStatus.FINISHED);
             recordFinalScores(game);
-            log.info("Gra {} zakończona po {} rundach", gameId, gameProperties.totalRounds());
+            log.info("Gra {} zakończona po {} rundach", gameId, game.getTotalRounds());
             return;
         }
 

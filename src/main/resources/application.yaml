@@ -2,10 +2,10 @@ spring:
   application:
     name: project22-card-game-1
 
-  # File-based H2 so game/user data survives a restart (not just an in-memory demo).
-  # Swapping to Postgres later is a config-only change: same JPA entities/repositories,
-  # just point these 4 lines at Postgres (url/driver-class-name/username/password) and
-  # flip ddl-auto to "validate" behind a real migration tool (e.g. Flyway) instead.
+  # File-based H2. Swapping to Postgres later is a config-only change: same JPA
+  # entities/repositories, just point these 4 lines at Postgres
+  # (url/driver-class-name/username/password) and flip ddl-auto to "validate"
+  # behind a real migration tool (e.g. Flyway) instead — see TODO (docker-compose + Postgres).
   datasource:
     url: jdbc:h2:file:./data/carddb
     driver-class-name: org.h2.Driver
@@ -14,11 +14,16 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: update
+      # TEMPORARY while the schema is still changing often: wipes and recreates on every
+      # start, so game/account data does NOT survive a restart right now (trade-off, not a
+      # bug — avoids the ALTER-TABLE-NOT-NULL pitfall in README § "Znana pułapka"). Revert to
+      # "update" (or "validate" + Flyway on Postgres) once the schema has settled.
+      ddl-auto: create-drop
     open-in-view: false
 
-  # Sessions in the same DB too — a restart used to log everyone out and un-join
-  # every player even though the game data itself survived. Wiring is in
+  # Sessions in the same DB too (survives a restart on their own — originally meant a
+  # restart didn't log everyone out while game data also survived; that second half is
+  # moot for now with ddl-auto=create-drop above, see the TODO on that line). Wiring is in
   # SessionConfig (@EnableJdbcHttpSession) since Boot 4.x no longer auto-configures
   # this from a property. Schema is our own idempotent copy (see session-schema-h2.sql)
   # so repeated restarts don't fail trying to re-create existing tables.
@@ -67,11 +72,16 @@ game:
     min: 3
     max: 5
   hand-size: 7
-  total-rounds: 20
+  # Ceiling only — the host picks the actual round count (1..max-total-rounds) when creating the game.
+  max-total-rounds: 20
   timeouts:
     answer-seconds: 60
     ranking-seconds: 45
-    disconnect-seconds: 15
+    # How long only the round's leader can click "Next round" before it opens up to everyone else.
+    reveal-seconds: 30
+    # 60s, not a stricter value — a phone screen locking/dimming is normal and shouldn't boot someone
+    # from the game. A player currently expected to act is exempt from this regardless (see GameService).
+    disconnect-seconds: 60
     leave-banner-seconds: 10
   max-nickname-length: 20
   code-length: 5

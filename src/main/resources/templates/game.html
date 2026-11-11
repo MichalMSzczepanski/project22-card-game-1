@@ -88,11 +88,14 @@
     <div class="card-body text-center">
         <p class="card-text">Czekamy na graczy. Udostępnij kod gry znajomym.</p>
         <p><a th:href="@{/games/{id}/tv(id=${view.gameId()})}" target="_blank"><i class="bi bi-display"></i> Otwórz ekran TV (na telewizor/laptop)</a></p>
-        <form method="post" th:if="${view.canStart()}" th:action="@{/games/{id}/start(id=${view.gameId()})}">
+        <form method="post" th:if="${view.canStart() and view.isHost()}" th:action="@{/games/{id}/start(id=${view.gameId()})}">
             <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
             <button type="submit" class="btn btn-success btn-lg w-100">Start gry</button>
         </form>
-        <p th:unless="${view.canStart()}" class="text-muted mb-0">Potrzeba minimum 3 graczy.</p>
+        <p th:if="${!view.canStart()}" class="text-muted mb-0">Potrzeba minimum 3 graczy.</p>
+        <p th:if="${view.canStart() and !view.isHost()}" class="text-muted mb-0">
+            Czeka na <strong th:text="${view.hostNickname()}"></strong> (twórcę gry), żeby wystartować.
+        </p>
     </div>
 </div>
 
@@ -174,10 +177,13 @@
             <p class="mb-0 text-muted" th:unless="${row.rank() > 0}">brak pozycji (czas minął) — 0 pkt</p>
         </div>
     </div>
-    <form method="post" th:action="@{/games/{id}/next(id=${view.gameId()})}">
+    <form method="post" th:if="${view.canAdvanceRound()}" th:action="@{/games/{id}/next(id=${view.gameId()})}">
         <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
         <button type="submit" class="btn btn-success btn-lg w-100">Następna runda</button>
     </form>
+    <p th:unless="${view.canAdvanceRound()}" class="text-center text-muted small">
+        <i class="bi bi-stopwatch"></i> Prowadzący ma jeszcze <span th:text="${view.secondsLeft()}"></span> s, żeby kliknąć dalej.
+    </p>
 </div>
 
 <!-- FINISHED -->

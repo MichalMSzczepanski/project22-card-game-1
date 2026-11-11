@@ -17,7 +17,7 @@ Nowy plik `.md` w repo → dopisz go do tej tabeli.
 „Admin gry” (rola w grze, README sekcja 5) ≠ „panel admina aplikacji” (`/admin`, operator serwisu, README TODO).
 
 ## Stack
-Java 17, Spring Boot 4.1.2, Maven · Thymeleaf **bez JS** (meta-refresh co 3 s) · JPA + H2 plikowe (`ddl-auto=update`) · Spring Security + Spring Session JDBC.
+Java 17, Spring Boot 4.1.2, Maven · Thymeleaf **bez JS** (meta-refresh co 3 s) · JPA + H2 plikowe (`ddl-auto=create-drop` **tymczasowo** — baza czyści się przy każdym starcie, patrz `application.yaml`) · Spring Security + Spring Session JDBC.
 
 ## Komendy
 - `./mvnw spring-boot:run` (konsola H2: `-Dspring-boot.run.profiles=dev`)
@@ -30,7 +30,7 @@ Java 17, Spring Boot 4.1.2, Maven · Thymeleaf **bez JS** (meta-refresh co 3 s) 
 - Brak schedulera: timeouty i rozłączenia leniwie przy każdym wejściu na stronę.
 
 ## Decyzje
-- Rola admina — w planach, spec. README sekcja 5.
+- Rola admina — w planach, spec. README sekcja 5; host-only "Start gry" (`Game.isHost()`) już zrobione jako pierwszy krok.
 - Deployment: VPS ze stałą ceną + Cloudflare Tunnel; **żadnych usług pay-per-use**.
 - Docelowo Postgres + Flyway. Komunikacja zostaje polling (bez WebSocketów).
 - Bez danych osobowych autora w kodzie i konfiguracji.

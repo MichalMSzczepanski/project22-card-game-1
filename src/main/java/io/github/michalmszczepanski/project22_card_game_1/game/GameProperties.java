@@ -9,7 +9,8 @@ import java.util.List;
 public record GameProperties(
         Players players,
         int handSize,
-        int totalRounds,
+        // Ceiling the host can pick at game creation (Game.totalRounds) — not a fixed round count anymore.
+        int maxTotalRounds,
         Timeouts timeouts,
         int maxNicknameLength,
         int codeLength,
@@ -20,7 +21,7 @@ public record GameProperties(
     public record Players(int min, int max) {
     }
 
-    public record Timeouts(int answerSeconds, int rankingSeconds, int disconnectSeconds, int leaveBannerSeconds) {
+    public record Timeouts(int answerSeconds, int rankingSeconds, int revealSeconds, int disconnectSeconds, int leaveBannerSeconds) {
     }
 
     /** podiumSize is the ceiling — the actual podium is also capped by how many submissions a round has. */

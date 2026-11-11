@@ -29,9 +29,6 @@ class GameServiceMultiTransactionTest {
     private GameService gameService;
 
     @Autowired
-    private GameProperties gameProperties;
-
-    @Autowired
     private CardPackRepository cardPackRepository;
 
     @Test
@@ -39,15 +36,19 @@ class GameServiceMultiTransactionTest {
         Random random = new Random();
         List<CardPack> freePacks = cardPackRepository.findAll().stream().filter(CardPack::isFree).toList();
 
-        Game game = gameService.createGame(freePacks);
+        Game game = gameService.createGame(freePacks, 20);
         String gameId = game.getId();
+        String hostId = null;
         for (String nick : new String[] {"Ala", "Bartek", "Celina"}) {
-            gameService.join(gameId, nick);
+            Player player = gameService.join(gameId, nick);
+            if (hostId == null) {
+                hostId = player.getId();
+            }
         }
 
-        gameService.startGame(gameId);
+        gameService.startGame(gameId, hostId);
 
-        for (int round = 1; round <= gameProperties.totalRounds(); round++) {
+        for (int round = 1; round <= game.getTotalRounds(); round++) {
             game = gameService.getGame(gameId);
             for (Player p : game.answerersInOrder()) {
                 var card = p.getHand().get(random.nextInt(p.getHand().size()));
@@ -64,7 +65,7 @@ class GameServiceMultiTransactionTest {
             // Would throw (unique constraint on game_used_answer_cards, or an equivalent
             // DataIntegrityViolationException) if the used-card tracking lost entries as it did
             // before the fix — a "fresh" pick could collide with a card actually already dealt.
-            gameService.nextRound(gameId);
+            gameService.nextRound(gameId, currentRound.getLeader().getId());
         }
 
         game = gameService.getGame(gameId);

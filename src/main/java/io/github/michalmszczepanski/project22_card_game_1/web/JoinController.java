@@ -38,6 +38,7 @@ public class JoinController {
         model.addAttribute("maxPlayers", gameProperties.players().max());
         model.addAttribute("maxNicknameLength", gameProperties.maxNicknameLength());
         model.addAttribute("codeLength", gameProperties.codeLength());
+        model.addAttribute("maxTotalRounds", gameProperties.maxTotalRounds());
         model.addAttribute("loggedIn", user != null);
         model.addAttribute("username", user == null ? null : user.getUsername());
         if (user != null) {
@@ -50,6 +51,7 @@ public class JoinController {
     @PostMapping("/games")
     public String createGame(@RequestParam String nickname,
                               @RequestParam(required = false) List<Long> packIds,
+                              @RequestParam(defaultValue = "10") int totalRounds,
                               Authentication authentication,
                               HttpSession session,
                               RedirectAttributes redirectAttributes) {
@@ -57,7 +59,7 @@ public class JoinController {
         List<CardPack> activePacks = packAccessService.resolveSelection(user, packIds);
 
         try {
-            Player player = gameService.createGameAndJoin(activePacks, nickname, user == null ? null : user.getId());
+            Player player = gameService.createGameAndJoin(activePacks, nickname, user == null ? null : user.getId(), totalRounds);
             session.setAttribute("playerId", player.getId());
             session.setAttribute("gameId", player.getGame().getId());
             return "redirect:/games/" + player.getGame().getId();

@@ -6,16 +6,16 @@ Standardy kodu: [`CODING.md`](CODING.md) · Prawo, licencje, etapy: [`FORMAL.md`
 
 ## 1. Jak działa gra (przepływ)
 
-1. **Tworzenie gry** — `POST /games`. Osoba tworząca podaje nick i wybiera pakiety kart; dostaje losowy 5-znakowy kod gry (`GameCodeGenerator`) i automatycznie dołącza jako pierwszy gracz.
+1. **Tworzenie gry** — `POST /games`. Osoba tworząca podaje nick, wybiera pakiety kart i **liczbę rund** (1..`game.max-total-rounds`, domyślnie max 20 — formularz podsuwa 10); dostaje losowy 5-znakowy kod gry (`GameCodeGenerator`) i automatycznie dołącza jako pierwszy gracz (= **host/twórca gry**, `GameService.createGameAndJoin`).
 2. **Lobby** — inni dołączają kodem (`POST /games/join`). Min. 3, max. 5 graczy (`game.players.min` / `game.players.max` w `application.yaml`, bindowane przez `GameProperties`).
-3. **Start** — **każdy** gracz w lobby może kliknąć "Start gry" (nie tylko założyciel) — `GameController.start` nie sprawdza, kto klika, tylko czy jest wystarczająco graczy.
-4. **20 rund** (`game.total-rounds`), każda ma 3 fazy:
+3. **Start** — **tylko host** (kto dołączył najwcześniej i wciąż jest aktywny — `Game.isHost()`, bez osobnego stanu "admina"; jeśli host wyjdzie, rola automatycznie przechodzi na kolejnego najdłużej obecnego gracza) może kliknąć "Start gry" — `GameService.startGame(gameId, playerId)` odrzuca innych z komunikatem.
+4. **Tyle rund, ile wybrał host przy tworzeniu gry** (`Game.totalRounds`, nie globalny `game.max-total-rounds` — to tylko sufit), każda ma 3 fazy:
    - `ANSWERING` — prowadzący dostaje czarną kartę-pytanie (`CardType.QUESTION`); wszyscy pozostali gracze wybierają po jednej karcie-odpowiedzi (`CardType.ANSWER`) z ręki (7 kart, `game.hand-size`). Limit czasu: `game.timeouts.answer-seconds` (60s) — kto nie zdąży, dostaje losową kartę z ręki.
    - `RANKING` — prowadzący wybiera **podium** z zebranych (potasowanych, anonimowych) odpowiedzi: miejsca wg `game.scoring.podium-size` (domyślnie 3, mniej jeśli jest mniej odpowiedzi) — `Round.podiumSize()`. Limit czasu: `game.timeouts.ranking-seconds` (45s) — po nim runda odkrywa się z tym, co prowadzący zdążył przyznać; nieprzyznane miejsca i odpowiedzi poza podium dostają 0 pkt.
-   - `REVEALED` — wyniki rundy: kto napisał co i ile punktów to dało. Dowolny gracz klika "Następna runda".
+   - `REVEALED` — wyniki rundy: kto napisał co i ile punktów to dało. Pierwsze `game.timeouts.reveal-seconds` (30s) kliknąć "Następna runda" może tylko prowadzący tej rundy (`round.getLeader()`); po tym czasie — każdy (`GameService.nextRound(gameId, playerId)`, `GameViewModel.canAdvanceRound()`).
    - **Ręka gracza trwa przez całą grę.** Na starcie każdy dostaje 7 kart-odpowiedzi i trzyma je z rundy na rundę. W każdej rundzie „zrzuca” dokładnie jedną (tę, którą zagrał, albo losową przy timeoucie), a przed następną rundą dobiera jedną nową z talii (`GameService.dealUpToHandSize`) — ręka zawsze wraca do 7. Prowadzący w swojej rundzie nie zrzuca nic, jego ręka czeka nietknięta. Zagrane karty nie wracają do talii w tej grze (`Game.usedAnswerCardIds`).
 5. **Prowadzący rotuje** — `Game.nextLeader()` idzie po kolei po `joinOrder` (kto pierwszy dołączył, ten pierwszy prowadzi), pętla z zawijaniem, przeskakując graczy którzy wyszli.
-6. **Koniec gry** — po 20 rundach (`GameStatus.FINISHED`) albo wcześniej, jeśli ktoś kliknie "Zakończ grę".
+6. **Koniec gry** — po `Game.totalRounds` rundach (`GameStatus.FINISHED`) albo wcześniej, jeśli ktoś kliknie "Zakończ grę".
 
 ### Punktacja (podium, nie zgadywanie autorstwa)
 
@@ -29,7 +29,7 @@ Prowadzący przyznaje tylko miejsca podium — domyślnie 3: 1. = 3 pkt, 2. = 2 
 ### Wychodzenie z gry / wykrywanie rozłączenia
 
 - Przycisk "Opuść grę" (`POST /games/{id}/leave`) — natychmiastowe wyjście.
-- **Bez JS**: każde zwykłe odpytanie `/games/{id}` co 3s (meta-refresh, `game.poll-interval-seconds`) odświeża "ostatnio widziano" (`Player.lastSeenAt`) tego gracza. Przy każdym żądaniu serwer sprawdza też (`pruneDisconnectedPlayers`), czy ktoś INNY nie ucichł dłużej niż `game.timeouts.disconnect-seconds` (15s) — jeśli tak, traktuje go jak zamkniętą kartę i usuwa. Gracz, na którego akurat czeka runda (jeszcze nie odpowiedział / jeszcze ranguje), jest z tego wyłączony — jego ekran z założenia nie odświeża się, więc cisza nie znaczy "wyszedł".
+- **Bez JS**: każde zwykłe odpytanie `/games/{id}` co 3s (meta-refresh, `game.poll-interval-seconds`) odświeża "ostatnio widziano" (`Player.lastSeenAt`) tego gracza. Przy każdym żądaniu serwer sprawdza też (`pruneDisconnectedPlayers`), czy ktoś INNY nie ucichł dłużej niż `game.timeouts.disconnect-seconds` (60s — świadomie wysoko, żeby zgaszony/zablokowany ekran telefonu nie wyrzucał z gry) — jeśli tak, traktuje go jak zamkniętą kartę i usuwa. Gracz, na którego akurat czeka runda (jeszcze nie odpowiedział / jeszcze ranguje), jest z tego wyłączony — jego ekran z założenia nie odświeża się, więc cisza nie znaczy "wyszedł".
 - W lobby wyjście usuwa gracza od razu; w trakcie gry zostaje tylko oznaczony `left=true` (stare `Submission`/`Ranking` wciąż na niego wskazują) i wyfiltrowany z `Game.activePlayers()` (scoreboard, kolejka prowadzącego, dobieranie kart).
 - Gdy **ostatni aktywny** gracz wyjdzie — cała gra jest usuwana z bazy. Pozostałym graczom (i ekranowi TV) pokazuje się baner "X opuścił(a) grę" na `game.timeouts.leave-banner-seconds` (10s).
 - **Limit tego podejścia**: to czysto reaktywne na żądania — jeśli *nikt* już nigdy nie odwiedzi URL-a gry (zamknięte karty, nikt nie otworzył ekranu TV), wpis w bazie fizycznie zostaje (nic go nie posprząta w tle — nie ma schedulera/`@Scheduled`).
@@ -40,7 +40,7 @@ Prowadzący przyznaje tylko miejsca podium — domyślnie 3: 1. = 3 pkt, 2. = 2 
 
 ## 2. Co i gdzie jest zapisywane
 
-Baza: **H2, plikowa** (`./data/carddb.mv.db`), nie w pamięci — `spring.jpa.hibernate.ddl-auto=update`. Dane przeżywają restart aplikacji. Brak Flyway/Liquibase — schemat trzyma się tak, jak Hibernate go dociągnie przy starcie (patrz gotcha w sekcji błędów).
+Baza: **H2, plikowa** (`./data/carddb.mv.db`), nie w pamięci. **Tymczasowo** `spring.jpa.hibernate.ddl-auto=create-drop` — baza czyści się przy **każdym starcie aplikacji** (dane NIE przeżywają restartu), na czas częstych zmian schematu; patrz TODO → docker-compose + Postgres, żeby to wróciło. Brak Flyway/Liquibase — schemat trzyma się tak, jak Hibernate go wygeneruje przy starcie (patrz gotcha w sekcji błędów, dziś nieaktywna przy `create-drop`, wróci przy `update`/`validate`).
 
 | Co | Encja | Uwagi |
 |---|---|---|
@@ -67,6 +67,8 @@ Nic o stanie gry nie jest trzymane tylko w pamięci/sesji — `playerId`/`gameId
 - Logi: `GameService` loguje każdą istotną zmianę stanu (`log.info`/`log.debug`) po polsku, z kodem gry — to pierwsze miejsce do grep'owania przy diagnozie.
 
 ### Znana pułapka (i jak jej unikać) — zmiana enuma przy `ddl-auto=update`
+
+> Dziś nieaktywna: lokalnie działamy na `ddl-auto=create-drop` (baza czyści się przy starcie), więc to się nie zdarzy. Wraca, gdy ktoś przełączy na `update` (albo na Postgres+Flyway w `validate`, inną drogą — przez migracje).
 
 H2 mapuje `@Enumerated(EnumType.STRING)` na natywny typ `ENUM('STARA_WARTOSC', ...)` **zapisany w definicji kolumny**, nie na zwykły `VARCHAR`. `ddl-auto=update` nigdy nie poszerza/zmienia tego ograniczenia na istniejącej kolumnie — tylko dodaje nowe kolumny/tabele. Efekt: zmiana nazwy wartości enuma w Javie (np. `CardType.BLACK/WHITE` → `QUESTION/ANSWER`, albo wcześniej `GameStatus.GUESSING` → `RANKING`) **nie jest błędem kompilacji, ale wywala 500 na żywej bazie**, dopóki ktoś ręcznie nie zmigruje danych:
 
@@ -99,20 +101,23 @@ a potem dla każdej: poszerz → zaktualizuj dane → zwęż, tak jak wyżej.
 ### Rozgrywka
 - [x] **Punktacja podium 3-2-1**: prowadzący wybiera tylko 3 najlepsze odpowiedzi (zamiast układać wszystkie); mniej odpowiedzi → mniej miejsc; timeout → punkty tylko za przyznane miejsca (`GameService.scoreRound`, `submitRanking`, `Round.podiumSize`/`pointsForRank`). Spec: `MECHANICS.md`.
 - [ ] **Rola admina** — tylko admin zarządza grą i graczami; gdy admin ucieknie, dowolny gracz może go przejąć przyciskiem „Przejmij admina”. Specyfikacja: sekcja 5.
-  - [ ] Założyciel = admin; akcje admina (start, następna runda, tryb rodzinny, zakończ) zablokowane dla reszty.
+  - [x] Założyciel = host; tylko host może kliknąć „Start gry” (`Game.isHost()` — po joinOrder, nie osobny stan; host wychodzi → rola sama przechodzi na następnego, bez akcji „przejmij”).
+  - [ ] Pozostałe akcje admina (następna runda poza oknem priorytetu prowadzącego, tryb rodzinny, zakończ) wciąż dostępne dla każdego — zablokować dla reszty.
   - [ ] Nowa akcja „Wyrzuć gracza” (wyrzucony może wrócić kodem).
-  - [ ] Gra bez admina + przycisk „Przejmij admina” (kto pierwszy, ten admin); wyniki rundy czekają na przejęcie.
+  - [ ] Gra bez admina + przycisk „Przejmij admina” (kto pierwszy, ten admin) — dziś niepotrzebne dla hosta (auto-przejęcie przez joinOrder), ale potrzebne, gdy admin będzie mieć więcej uprawnień niż host.
   - [ ] TV pokazuje aktualnego admina / „Brak admina”.
   - [ ] Później (poza MVP): dobrowolne przekazanie roli admina konkretnej osobie.
 - [ ] **Do 10 graczy** (+ prowadzący) — podnieść `Game.MAX_PLAYERS`; sprawdzić, czy talia/pakiety starczą na 20 rund przy pełnym stole (`HAND_SIZE` × gracze + dobieranie).
 - [ ] Gracz dołączający w trakcie gry wchodzi od następnej rundy.
 - [ ] Prowadzący znika w trakcie rundy → po timeoucie lub decyzją ownera runda pominięta, prowadzenie przechodzi dalej.
 - [ ] Ekran TV: kod QR do dołączania na `/games/{id}/tv`.
-- [ ] **Ustawienia admina przed startem**: liczba rund (np. 10 / 20) albo tryb „do X punktów”, długość timeoutów odpowiedzi i rankingu. Przy 10 graczach 20 rund to bardzo długa gra.
+- [x] **Liczba rund wybierana przy tworzeniu gry** (1..`game.max-total-rounds`, formularz podsuwa 10) — `Game.totalRounds`, `GameService.createGame`. Dziś przy tworzeniu, nie w panelu ustawień lobby.
+- [ ] **Tryb „do X punktów”** jako alternatywa dla liczby rund; długość timeoutów odpowiedzi/rankingu per-gra (dziś globalne w `application.yaml`).
 - [ ] **Pusta karta**: raz na grę gracz może zagrać własną, wpisaną odpowiedź (zamiast karty z ręki). Na rankingu wygląda jak każda inna — anonimowo.
 - [ ] **Wymiana ręki**: raz na grę gracz może zrzucić całą rękę i dobrać 7 nowych (gdy nic nie pasuje). Zrzucone karty nie wracają do talii.
 - [ ] **„Zagraj jeszcze raz”**: po końcu gry admin jednym kliknięciem zakłada nową grę z tymi samymi graczami i pakietami — bez ponownego wpisywania kodu.
 - [ ] Talia przy pełnym stole: 10 graczy × 7 kart na start + 9 zrzutów × 20 rund ≈ 250 kart-odpowiedzi bez powtórek — wybrane pakiety muszą to pokryć (albo ograniczyć liczbę rund / ostrzec admina).
+- [ ] **Easter eggi i uatrakcyjnienia** (hat trick, underdog bonus, runda-bonus, Rando...) — lista z przykładowymi tekstami: [`MECHANICS.md`](MECHANICS.md) → „Easter eggi i uatrakcyjnienia”.
 
 ### Panel admina aplikacji (operator serwisu — nie mylić z adminem gry)
 Osobna część pod `/admin`, tylko dla właściciela serwisu. Dostęp: rola `ADMIN` w aplikacji **i** Cloudflare Access (darmowy, logowanie przed wejściem na stronę) — panel niewidoczny dla świata.
@@ -130,6 +135,7 @@ Osobna część pod `/admin`, tylko dla właściciela serwisu. Dostęp: rola `AD
 
 ### Dane
 - [ ] Przejście z H2 na **Postgres + Flyway** (`ddl-auto=validate`) — znika też pułapka z enumami.
+- [ ] **`docker-compose.yml` lokalnie, tylko z Postgresem** (dev, osobno od pełnego deploymentu niżej) — żeby gry/konta przetrwały restart/ubicie aplikacji nawet na czas dev; dziś (H2 + `ddl-auto=create-drop`) baza czyści się przy każdym starcie, patrz `application.yaml`.
 - [ ] Sprzątanie porzuconych gier w tle (`@Scheduled`, np. brak aktywności > X h) — dziś wpis zostaje, jeśli nikt już nie odwiedzi gry.
 
 ### Bezpieczeństwo / odporność

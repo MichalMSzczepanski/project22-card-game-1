@@ -10,9 +10,10 @@
 
 ## v1 — publiczne darmowe MVP
 Cel: grywalne w internecie, bezpieczne, bez kosztów-niespodzianek.
-- ⬜ Rola admina gry + „Przejmij admina” (README sekcja 5)
+- 🟨 Rola admina gry (README sekcja 5) — host-only start zrobione, reszta (wyrzucanie, „Przejmij admina”, TV) w planach
 - ⬜ Do 10 graczy
 - ✅ Punktacja podium 3-2-1 (MECHANICS.md)
+- ✅ Dłuższy timeout rozłączenia (60s, zgaszony ekran telefonu nie wyrzuca z gry) i priorytet prowadzącego (30s) na „Następna runda”
 - ⬜ Wyłączenie zakupów i kont; „Tematyczne zestawy — wkrótce” + licznik „Chcę ten zestaw!”
 - ⬜ Własne karty i własny wygląd
 - ⬜ Postgres + Flyway, sprzątanie porzuconych gier
@@ -21,7 +22,7 @@ Cel: grywalne w internecie, bezpieczne, bez kosztów-niespodzianek.
 - ⬜ Panel admina aplikacji — wersja minimalna (dashboard, gry na żywo, karty)
 
 ## v1.1 — więcej zabawy
-- ⬜ Ustawienia gry (liczba rund / do X punktów, timeouty)
+- 🟨 Ustawienia gry — liczba rund wybierana przy tworzeniu gry ✅; „do X punktów” i timeouty per-gra ⬜
 - ⬜ Pusta karta (własna odpowiedź raz na grę)
 - ⬜ Wymiana ręki raz na grę
 - ⬜ „Zagraj jeszcze raz”
@@ -45,3 +46,4 @@ Cel: grywalne w internecie, bezpieczne, bez kosztów-niespodzianek.
 - ⬜ Kolejne zestawy okolicznościowe × pokolenia
 - ⬜ Własny pakiet kart na zamówienie (impreza firmowa, panieński)
 - ⬜ Dobrowolne przekazanie roli admina gry
+- ⬜ **Easter eggi i uatrakcyjnienia** (hat trick, zmartwychwstanie, underdog bonus, runda-bonus x2, finałowa runda x3, Rando) — pełna lista z przykładowymi tekstami: [`MECHANICS.md`](MECHANICS.md) → „Easter eggi i uatrakcyjnienia”. Zasada: śmieszny tekst przed nową mechaniką punktową.

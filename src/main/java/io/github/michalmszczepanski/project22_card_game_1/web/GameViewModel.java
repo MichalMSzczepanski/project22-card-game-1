@@ -44,7 +44,10 @@ public record GameViewModel(
         int rankedCount,
         int ranksNeededTotal,
         String justLeftNickname,
-        int pollIntervalSeconds
+        int pollIntervalSeconds,
+        boolean isHost,
+        String hostNickname,
+        boolean canAdvanceRound
 ) {
 
     public record PlayerRow(String nickname, int points, boolean leader, boolean me) {
@@ -139,7 +142,8 @@ public record GameViewModel(
         int secondsLeft = 0;
         if (round != null) {
             int timeoutSeconds = game.getStatus() == GameStatus.ANSWERING ? properties.timeouts().answerSeconds()
-                    : game.getStatus() == GameStatus.RANKING ? properties.timeouts().rankingSeconds() : -1;
+                    : game.getStatus() == GameStatus.RANKING ? properties.timeouts().rankingSeconds()
+                    : game.getStatus() == GameStatus.REVEALED ? properties.timeouts().revealSeconds() : -1;
             if (timeoutSeconds >= 0) {
                 long elapsed = Duration.between(round.getPhaseStartedAt(), Instant.now()).getSeconds();
                 secondsLeft = (int) Math.max(0, timeoutSeconds - elapsed);
@@ -152,11 +156,16 @@ public record GameViewModel(
             justLeftNickname = game.getLastLeftNickname();
         }
 
+        boolean isHost = me.isPresent() && game.isHost(me.get().getId());
+        String hostNickname = game.activePlayers().isEmpty() ? null : game.activePlayers().get(0).getNickname();
+        boolean canAdvanceRound = game.getStatus() == GameStatus.REVEALED
+                && (secondsLeft == 0 || isLeader);
+
         return new GameViewModel(
                 game.getId(),
                 game.getStatus(),
                 round == null ? 0 : round.getNumber(),
-                properties.totalRounds(),
+                game.getTotalRounds(),
                 round == null ? null : round.getQuestionCard().getText(),
                 players,
                 me.isPresent(),
@@ -177,7 +186,10 @@ public record GameViewModel(
                 rankedCount,
                 ranksNeededTotal,
                 justLeftNickname,
-                properties.pollIntervalSeconds()
+                properties.pollIntervalSeconds(),
+                isHost,
+                hostNickname,
+                canAdvanceRound
         );
     }
 

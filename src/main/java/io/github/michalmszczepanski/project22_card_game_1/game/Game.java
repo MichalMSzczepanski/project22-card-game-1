@@ -52,6 +52,10 @@ public class Game {
 
     private int leaderIndex = -1;
 
+    /** Chosen by the host at creation time, capped by {@code game.max-total-rounds}. */
+    @Getter
+    private int totalRounds;
+
     @Getter
     @Setter
     private boolean familyMode = false;
@@ -104,8 +108,9 @@ public class Game {
     @Version
     private Long version;
 
-    public Game(String id) {
+    public Game(String id, int totalRounds) {
         this.id = id;
+        this.totalRounds = totalRounds;
     }
 
     /** Adds a player and wires up the bidirectional FK + join-order used for turn rotation. */
@@ -117,6 +122,12 @@ public class Game {
 
     public boolean isFull(int maxPlayers) {
         return activePlayers().size() >= maxPlayers;
+    }
+
+    /** The host is whoever joined earliest and is still active — no separate "admin" state to track or hand off. */
+    public boolean isHost(String playerId) {
+        List<Player> active = activePlayers();
+        return !active.isEmpty() && active.get(0).getId().equals(playerId);
     }
 
     public Optional<Player> findPlayer(String playerId) {

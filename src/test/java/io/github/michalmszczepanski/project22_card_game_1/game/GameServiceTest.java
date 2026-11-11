@@ -48,6 +48,20 @@ class GameServiceTest {
         return cardPackRepository.findAll().stream().filter(CardPack::isFree).toList();
     }
 
+    private Game createGame(List<CardPack> packs) {
+        return gameService.createGame(packs, 20);
+    }
+
+    /** Starts as the host (whoever joined first) — the only player allowed to. */
+    private void startGame(Game game) {
+        gameService.startGame(game.getId(), game.getPlayers().get(0).getId());
+    }
+
+    /** Advances as the round's leader — always allowed, regardless of the reveal-priority window. */
+    private void nextRound(Game game) {
+        gameService.nextRound(game.getId(), game.getCurrentRound().getLeader().getId());
+    }
+
     /**
      * Plays through one ANSWERING+RANKING+REVEALED cycle with 2 answerers.
      * Only the leader ranks (submissions in whatever order they come back in) —
@@ -71,12 +85,12 @@ class GameServiceTest {
 
     @Test
     void playsOneFullRoundWithCorrectScoring() {
-        Game game = gameService.createGame(freePacks());
+        Game game = createGame(freePacks());
         Player leader = gameService.join(game.getId(), "Ala");
         gameService.join(game.getId(), "Bartek");
         gameService.join(game.getId(), "Celina");
 
-        gameService.startGame(game.getId());
+        startGame(game);
         assertThat(game.getStatus()).isEqualTo(GameStatus.ANSWERING);
         assertThat(leader.getHand()).hasSize(gameProperties.handSize());
 
@@ -114,7 +128,7 @@ class GameServiceTest {
         assertThat(a1.getPoints()).isEqualTo(2);
         assertThat(a2.getPoints()).isEqualTo(3);
 
-        gameService.nextRound(game.getId());
+        nextRound(game);
         assertThat(game.getStatus()).isEqualTo(GameStatus.ANSWERING);
         assertThat(game.getCurrentRound().getNumber()).isEqualTo(2);
         assertThat(a1.getHand()).hasSize(gameProperties.handSize());
@@ -123,13 +137,13 @@ class GameServiceTest {
 
     @Test
     void podiumCapsScoringAtTopThreeWhenThereAreMoreAnswerers() {
-        Game game = gameService.createGame(freePacks());
+        Game game = createGame(freePacks());
         gameService.join(game.getId(), "Ala");
         gameService.join(game.getId(), "Bartek");
         gameService.join(game.getId(), "Celina");
         gameService.join(game.getId(), "Dawid");
         gameService.join(game.getId(), "Erik");
-        gameService.startGame(game.getId());
+        startGame(game);
 
         Round round = game.getCurrentRound();
         Player roundLeader = round.getLeader();
@@ -159,11 +173,11 @@ class GameServiceTest {
 
     @Test
     void onlyLeaderCanRank() {
-        Game game = gameService.createGame(freePacks());
+        Game game = createGame(freePacks());
         gameService.join(game.getId(), "Ala");
         gameService.join(game.getId(), "Bartek");
         gameService.join(game.getId(), "Celina");
-        gameService.startGame(game.getId());
+        startGame(game);
 
         List<Player> answerers = game.answerersInOrder();
         Player a1 = answerers.get(0);
@@ -179,11 +193,11 @@ class GameServiceTest {
 
     @Test
     void cannotAssignSameRankTwice() {
-        Game game = gameService.createGame(freePacks());
+        Game game = createGame(freePacks());
         gameService.join(game.getId(), "Ala");
         gameService.join(game.getId(), "Bartek");
         gameService.join(game.getId(), "Celina");
-        gameService.startGame(game.getId());
+        startGame(game);
 
         List<Player> answerers = game.answerersInOrder();
         gameService.submitAnswer(game.getId(), answerers.get(0).getId(), answerers.get(0).getHand().get(0).getId());
@@ -200,11 +214,11 @@ class GameServiceTest {
 
     @Test
     void cannotAssignRankOutsideValidRange() {
-        Game game = gameService.createGame(freePacks());
+        Game game = createGame(freePacks());
         gameService.join(game.getId(), "Ala");
         gameService.join(game.getId(), "Bartek");
         gameService.join(game.getId(), "Celina");
-        gameService.startGame(game.getId());
+        startGame(game);
 
         List<Player> answerers = game.answerersInOrder();
         gameService.submitAnswer(game.getId(), answerers.get(0).getId(), answerers.get(0).getHand().get(0).getId());
@@ -226,11 +240,11 @@ class GameServiceTest {
                 .filter(p -> p.getName().equals("Pikantna"))
                 .findFirst().orElseThrow();
 
-        Game game = gameService.createGame(List.of(pikantna));
+        Game game = createGame(List.of(pikantna));
         Player p1 = gameService.join(game.getId(), "Ala");
         Player p2 = gameService.join(game.getId(), "Bartek");
         Player p3 = gameService.join(game.getId(), "Celina");
-        gameService.startGame(game.getId());
+        startGame(game);
 
         for (Player p : List.of(p1, p2, p3)) {
             assertThat(p.getHand()).allSatisfy(card -> assertThat(card.getPack().getId()).isEqualTo(pikantna.getId()));
@@ -244,11 +258,11 @@ class GameServiceTest {
         CardPack pikantna = cardPackRepository.findAll().stream()
                 .filter(p -> p.getName().equals("Pikantna")).findFirst().orElseThrow();
 
-        Game game = gameService.createGame(List.of(generic, pikantna));
+        Game game = createGame(List.of(generic, pikantna));
         Player p1 = gameService.join(game.getId(), "Ala");
         Player p2 = gameService.join(game.getId(), "Bartek");
         Player p3 = gameService.join(game.getId(), "Celina");
-        gameService.startGame(game.getId());
+        startGame(game);
 
         gameService.setFamilyMode(game.getId(), true);
         assertThat(game.isFamilyMode()).isTrue();
@@ -260,7 +274,7 @@ class GameServiceTest {
 
         // Play a round out so new cards get drawn too — must still be family-safe.
         playOneRound(game);
-        gameService.nextRound(game.getId());
+        nextRound(game);
         for (Player p : List.of(p1, p2, p3)) {
             assertThat(p.getHand()).allSatisfy(
                     card -> assertThat(card.getPack().getAudience()).isNotEqualTo(PackAudience.ADULT));
@@ -271,15 +285,15 @@ class GameServiceTest {
     void finishedGameRecordsScoresOnlyForLoggedInPlayers() {
         AppUser loggedInUser = appUserRepository.save(new AppUser("stats-test-user-" + System.nanoTime(), "hash"));
 
-        Game game = gameService.createGame(freePacks());
+        Game game = createGame(freePacks());
         Player loggedIn = gameService.join(game.getId(), "Ala", loggedInUser.getId());
         gameService.join(game.getId(), "Bartek");
         gameService.join(game.getId(), "Celina");
-        gameService.startGame(game.getId());
+        startGame(game);
 
-        for (int round = 1; round <= gameProperties.totalRounds(); round++) {
+        for (int round = 1; round <= game.getTotalRounds(); round++) {
             playOneRound(game);
-            gameService.nextRound(game.getId());
+            nextRound(game);
         }
 
         assertThat(game.getStatus()).isEqualTo(GameStatus.FINISHED);
@@ -294,11 +308,11 @@ class GameServiceTest {
 
     @Test
     void answerTimeoutAutoPlaysRandomCardsAndAdvances() {
-        Game game = gameService.createGame(freePacks());
+        Game game = createGame(freePacks());
         gameService.join(game.getId(), "Ala");
         gameService.join(game.getId(), "Bartek");
         gameService.join(game.getId(), "Celina");
-        gameService.startGame(game.getId());
+        startGame(game);
 
         List<Player> answerers = game.answerersInOrder();
         int handSizeBefore = answerers.get(0).getHand().size();
@@ -314,11 +328,11 @@ class GameServiceTest {
 
     @Test
     void rankingTimeoutRevealsWithWhateverRankingsExist() {
-        Game game = gameService.createGame(freePacks());
+        Game game = createGame(freePacks());
         gameService.join(game.getId(), "Ala");
         gameService.join(game.getId(), "Bartek");
         gameService.join(game.getId(), "Celina");
-        gameService.startGame(game.getId());
+        startGame(game);
 
         List<Player> answerers = game.answerersInOrder();
         gameService.submitAnswer(game.getId(), answerers.get(0).getId(), answerers.get(0).getHand().get(0).getId());
@@ -335,17 +349,107 @@ class GameServiceTest {
 
     @Test
     void cannotStartWithTooFewPlayers() {
-        Game game = gameService.createGame(freePacks());
+        Game game = createGame(freePacks());
         gameService.join(game.getId(), "Ala");
         gameService.join(game.getId(), "Bartek");
 
-        assertThatThrownBy(() -> gameService.startGame(game.getId()))
+        assertThatThrownBy(() -> startGame(game))
                 .isInstanceOf(InvalidGameActionException.class);
     }
 
     @Test
+    void onlyHostCanStartGame() {
+        Game game = createGame(freePacks());
+        Player host = gameService.join(game.getId(), "Ala");
+        Player other = gameService.join(game.getId(), "Bartek");
+        gameService.join(game.getId(), "Celina");
+
+        assertThatThrownBy(() -> gameService.startGame(game.getId(), other.getId()))
+                .isInstanceOf(InvalidGameActionException.class);
+
+        gameService.startGame(game.getId(), host.getId());
+        assertThat(game.getStatus()).isEqualTo(GameStatus.ANSWERING);
+    }
+
+    @Test
+    void hostRoleTransfersToNextEarliestJoinerIfOriginalHostLeaves() {
+        Game game = createGame(freePacks());
+        Player host = gameService.join(game.getId(), "Ala");
+        Player newHost = gameService.join(game.getId(), "Bartek");
+        gameService.join(game.getId(), "Celina");
+
+        gameService.leave(game.getId(), host.getId());
+        gameService.join(game.getId(), "Dawid"); // back up to the 3-player minimum
+
+        gameService.startGame(game.getId(), newHost.getId());
+        assertThat(game.getStatus()).isEqualTo(GameStatus.ANSWERING);
+    }
+
+    @Test
+    void createGameRejectsRoundCountOutsideAllowedRange() {
+        assertThatThrownBy(() -> gameService.createGame(freePacks(), 0))
+                .isInstanceOf(InvalidGameActionException.class);
+        assertThatThrownBy(() -> gameService.createGame(freePacks(), gameProperties.maxTotalRounds() + 1))
+                .isInstanceOf(InvalidGameActionException.class);
+    }
+
+    @Test
+    void gameFinishesAfterTheHostChosenNumberOfRounds() {
+        Game game = gameService.createGame(freePacks(), 1);
+        gameService.join(game.getId(), "Ala");
+        gameService.join(game.getId(), "Bartek");
+        gameService.join(game.getId(), "Celina");
+        startGame(game);
+
+        playOneRound(game);
+        nextRound(game);
+
+        assertThat(game.getStatus()).isEqualTo(GameStatus.FINISHED);
+    }
+
+    @Test
+    void onlyRoundLeaderCanAdvanceDuringRevealPriorityWindow() {
+        Game game = createGame(freePacks());
+        gameService.join(game.getId(), "Ala");
+        gameService.join(game.getId(), "Bartek");
+        gameService.join(game.getId(), "Celina");
+        startGame(game);
+
+        playOneRound(game);
+        assertThat(game.getStatus()).isEqualTo(GameStatus.REVEALED);
+
+        Round round = game.getCurrentRound();
+        Player leader = round.getLeader();
+        Player nonLeader = game.answerersInOrder().get(0);
+
+        assertThatThrownBy(() -> gameService.nextRound(game.getId(), nonLeader.getId()))
+                .isInstanceOf(InvalidGameActionException.class);
+
+        gameService.nextRound(game.getId(), leader.getId());
+        assertThat(game.getCurrentRound().getNumber()).isEqualTo(2);
+    }
+
+    @Test
+    void nextRoundOpensToEveryoneAfterRevealPriorityWindowExpires() {
+        Game game = createGame(freePacks());
+        gameService.join(game.getId(), "Ala");
+        gameService.join(game.getId(), "Bartek");
+        gameService.join(game.getId(), "Celina");
+        startGame(game);
+
+        playOneRound(game);
+        Round round = game.getCurrentRound();
+        Player nonLeader = game.answerersInOrder().get(0);
+
+        round.setPhaseStartedAt(java.time.Instant.now().minusSeconds(gameProperties.timeouts().revealSeconds() + 5));
+
+        gameService.nextRound(game.getId(), nonLeader.getId());
+        assertThat(game.getCurrentRound().getNumber()).isEqualTo(2);
+    }
+
+    @Test
     void leavingLobbyRemovesPlayerOutright() {
-        Game game = gameService.createGame(freePacks());
+        Game game = createGame(freePacks());
         gameService.join(game.getId(), "Ala");
         Player bartek = gameService.join(game.getId(), "Bartek");
         gameService.join(game.getId(), "Celina");
@@ -358,7 +462,7 @@ class GameServiceTest {
 
     @Test
     void lastPlayerLeavingDeletesTheGame() {
-        Game game = gameService.createGame(freePacks());
+        Game game = createGame(freePacks());
         Player ala = gameService.join(game.getId(), "Ala");
         String gameId = game.getId();
 
@@ -369,11 +473,11 @@ class GameServiceTest {
 
     @Test
     void leavingMidGameHidesPlayerButKeepsHistoryAndDeletesGameOnceAllGone() {
-        Game game = gameService.createGame(freePacks());
+        Game game = createGame(freePacks());
         Player leader = gameService.join(game.getId(), "Ala");
         gameService.join(game.getId(), "Bartek");
         gameService.join(game.getId(), "Celina");
-        gameService.startGame(game.getId());
+        startGame(game);
 
         List<Player> answerers = game.answerersInOrder();
         Player a1 = answerers.get(0);
@@ -398,11 +502,11 @@ class GameServiceTest {
 
     @Test
     void pruneDisconnectedPlayersIgnoresSomeoneCurrentlyExpectedToAct() {
-        Game game = gameService.createGame(freePacks());
+        Game game = createGame(freePacks());
         gameService.join(game.getId(), "Ala");
         gameService.join(game.getId(), "Bartek");
         gameService.join(game.getId(), "Celina");
-        gameService.startGame(game.getId());
+        startGame(game);
 
         List<Player> answerers = game.answerersInOrder();
         Player a2 = answerers.get(1);
@@ -418,11 +522,11 @@ class GameServiceTest {
 
     @Test
     void pruneDisconnectedPlayersRemovesSomeoneWhoWentQuietWhileWaiting() {
-        Game game = gameService.createGame(freePacks());
+        Game game = createGame(freePacks());
         gameService.join(game.getId(), "Ala");
         gameService.join(game.getId(), "Bartek");
         gameService.join(game.getId(), "Celina");
-        gameService.startGame(game.getId());
+        startGame(game);
 
         List<Player> answerers = game.answerersInOrder();
         Player a1 = answerers.get(0);

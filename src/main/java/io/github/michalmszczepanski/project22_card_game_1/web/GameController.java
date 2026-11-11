@@ -79,8 +79,9 @@ public class GameController {
     }
 
     @PostMapping("/start")
-    public String start(@PathVariable String gameId, RedirectAttributes redirectAttributes) {
-        return withErrorHandling(gameId, redirectAttributes, () -> gameService.startGame(gameId));
+    public String start(@PathVariable String gameId, HttpSession session, RedirectAttributes redirectAttributes) {
+        String playerId = requirePlayerId(session);
+        return withErrorHandling(gameId, redirectAttributes, () -> gameService.startGame(gameId, playerId));
     }
 
     @PostMapping("/answers")
@@ -104,8 +105,9 @@ public class GameController {
     }
 
     @PostMapping("/next")
-    public String next(@PathVariable String gameId, RedirectAttributes redirectAttributes) {
-        return withErrorHandling(gameId, redirectAttributes, () -> gameService.nextRound(gameId));
+    public String next(@PathVariable String gameId, HttpSession session, RedirectAttributes redirectAttributes) {
+        String playerId = requirePlayerId(session);
+        return withErrorHandling(gameId, redirectAttributes, () -> gameService.nextRound(gameId, playerId));
     }
 
     @PostMapping("/family-mode")
