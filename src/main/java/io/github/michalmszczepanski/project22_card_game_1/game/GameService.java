@@ -165,6 +165,29 @@ public class GameService {
         advanceToRankingIfComplete(game, round);
     }
 
+    /** "Wymiana ręki" (README TODO) — raz na całą grę, gracz zrzuca całą rękę i dobiera nową. */
+    public void swapHand(String gameId, String playerId) {
+        Game game = requireGame(gameId);
+        requireStatus(game, GameStatus.ANSWERING);
+        Round round = game.getCurrentRound();
+        Player player = requirePlayer(game, playerId);
+
+        if (round.getLeader().getId().equals(playerId)) {
+            throw new InvalidGameActionException("Prowadzący nie odpowiada w tej rundzie.");
+        }
+        if (round.hasSubmitted(player)) {
+            throw new InvalidGameActionException("Już wysłałeś odpowiedź w tej rundzie.");
+        }
+        if (player.isUsedHandSwap()) {
+            throw new InvalidGameActionException("Wymianę ręki możesz wykorzystać tylko raz na grę.");
+        }
+
+        player.markHandSwapUsed();
+        List.copyOf(player.getHand()).forEach(player::removeFromHand);
+        dealUpToHandSize(game, player);
+        log.info("Gra {}: {} wymienił rękę", gameId, playerId);
+    }
+
     private void advanceToRankingIfComplete(Game game, Round round) {
         List<Player> answerers = game.answerersInOrder();
         if (round.getSubmissions().size() == answerers.size()) {

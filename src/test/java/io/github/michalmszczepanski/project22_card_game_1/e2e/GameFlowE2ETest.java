@@ -367,6 +367,26 @@ class GameFlowE2ETest {
 
     @Test
     @Transactional
+    void playerCanSwapTheirHandOverRealHttp() throws Exception {
+        String gameId = createGame("Host", 10);
+        joinGame("Guest1", gameId);
+        joinGame("Guest2", gameId);
+        startGame("Host", gameId);
+
+        Game game = gameRepository.findById(gameId).orElseThrow();
+        String answererId = game.answerersInOrder().get(0).getId();
+        String answererNickname = game.answerersInOrder().get(0).getNickname();
+
+        MvcResult swapped = postAsPlayer(answererNickname, "/games/" + gameId,
+                "/games/" + gameId + "/swap-hand", Map.of());
+        assertThat(swapped.getResponse().getStatus()).isEqualTo(302);
+
+        Player answerer = game.findPlayer(answererId).orElseThrow();
+        assertThat(answerer.isUsedHandSwap()).isTrue();
+    }
+
+    @Test
+    @Transactional
     void tvLobbyEmbedsAJoinQrCodeThatRendersAsAPng() throws Exception {
         String gameId = createGame("Host", 10);
 

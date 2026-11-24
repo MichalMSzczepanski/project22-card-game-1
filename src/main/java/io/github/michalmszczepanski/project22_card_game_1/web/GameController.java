@@ -133,6 +133,12 @@ public class GameController {
                 () -> gameService.submitBlankAnswer(gameId, playerId, text));
     }
 
+    @PostMapping("/swap-hand")
+    public String swapHand(@PathVariable String gameId, HttpSession session, RedirectAttributes redirectAttributes) {
+        String playerId = requirePlayerId(session);
+        return withErrorHandling(gameId, redirectAttributes, () -> gameService.swapHand(gameId, playerId));
+    }
+
     @PostMapping("/rankings")
     public String submitRanking(@PathVariable String gameId,
                                  @RequestParam String submissionId,

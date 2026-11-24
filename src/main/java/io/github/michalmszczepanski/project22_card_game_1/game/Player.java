@@ -63,6 +63,10 @@ public class Player {
     @Getter
     private boolean usedBlankCard = false;
 
+    /** True once this player has swapped their whole hand for a fresh one, for the whole game. */
+    @Getter
+    private boolean usedHandSwap = false;
+
     /** Bumped on every request this player's own browser makes, so a stale value means a closed tab. */
     @Getter
     @Setter
@@ -101,6 +105,10 @@ public class Player {
 
     public void markBlankCardUsed() {
         this.usedBlankCard = true;
+    }
+
+    public void markHandSwapUsed() {
+        this.usedHandSwap = true;
     }
 
     public void touch() {

@@ -208,6 +208,56 @@ class GameServiceTest {
     }
 
     @Test
+    void playerCanSwapTheirWholeHandForAFreshOneOnce() {
+        Game game = createGame(freePacks());
+        gameService.join(game.getId(), "Ala");
+        gameService.join(game.getId(), "Bartek");
+        gameService.join(game.getId(), "Celina");
+        startGame(game);
+
+        Player a1 = game.answerersInOrder().get(0);
+        List<Long> oldHandIds = a1.getHand().stream().map(Card::getId).toList();
+        int handSize = a1.getHand().size();
+
+        gameService.swapHand(game.getId(), a1.getId());
+
+        assertThat(a1.isUsedHandSwap()).isTrue();
+        assertThat(a1.getHand()).hasSize(handSize);
+        assertThat(a1.getHand().stream().map(Card::getId).toList()).doesNotContainAnyElementsOf(oldHandIds);
+    }
+
+    @Test
+    void handSwapCanOnlyBeUsedOncePerGame() {
+        Game game = createGame(freePacks());
+        gameService.join(game.getId(), "Ala");
+        gameService.join(game.getId(), "Bartek");
+        gameService.join(game.getId(), "Celina");
+        startGame(game);
+
+        // round 1: a1 swaps hand, then answers normally; a2 answers normally
+        List<Player> answerers = game.answerersInOrder();
+        Player a1 = answerers.get(0);
+        Player a2 = answerers.get(1);
+        gameService.swapHand(game.getId(), a1.getId());
+        gameService.submitAnswer(game.getId(), a1.getId(), a1.getHand().get(0).getId());
+        gameService.submitAnswer(game.getId(), a2.getId(), a2.getHand().get(0).getId());
+        int rank = 1;
+        for (Submission submission : List.copyOf(game.getCurrentRound().getSubmissions())) {
+            gameService.submitRanking(game.getId(), game.getCurrentRound().getLeader().getId(), submission.getId(), rank++);
+        }
+        nextRound(game);
+
+        // round 2: with 3 players, a1 is now the leader — sits out
+        playOneRound(game);
+        nextRound(game);
+
+        // round 3: a1 is back to answering — swapping again must fail
+        assertThatThrownBy(() -> gameService.swapHand(game.getId(), a1.getId()))
+                .isInstanceOf(InvalidGameActionException.class)
+                .hasMessageContaining("raz na grę");
+    }
+
+    @Test
     void podiumCapsScoringAtTopThreeWhenThereAreMoreAnswerers() {
         Game game = createGame(freePacks());
         gameService.join(game.getId(), "Ala");

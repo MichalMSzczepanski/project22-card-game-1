@@ -53,7 +53,8 @@ public record GameViewModel(
         boolean canAdvanceRound,
         boolean waitingToJoinNextRound,
         boolean canUseBlankCard,
-        int maxBlankCardLength
+        int maxBlankCardLength,
+        boolean canSwapHand
 ) {
 
     public record PlayerRow(String id, String nickname, int points, boolean leader, boolean me) {
@@ -93,6 +94,7 @@ public record GameViewModel(
 
         List<HandCard> hand = List.of();
         boolean canUseBlankCard = false;
+        boolean canSwapHand = false;
         List<RankTarget> rankTargets = List.of();
         List<RankOption> rankOptions = List.of();
         List<RevealRow> reveal = List.of();
@@ -106,6 +108,8 @@ public record GameViewModel(
 
             canUseBlankCard = game.getStatus() == GameStatus.ANSWERING && !isLeader && !hasSubmitted
                     && !player.isUsedBlankCard();
+            canSwapHand = game.getStatus() == GameStatus.ANSWERING && !isLeader && !hasSubmitted
+                    && !player.isUsedHandSwap();
 
             if (game.getStatus() == GameStatus.RANKING && isLeader) {
                 rankTargets = round.unrankedSubmissions().stream()
@@ -213,7 +217,8 @@ public record GameViewModel(
                 canAdvanceRound,
                 waitingToJoinNextRound,
                 canUseBlankCard,
-                properties.maxBlankCardLength()
+                properties.maxBlankCardLength(),
+                canSwapHand
         );
     }
 

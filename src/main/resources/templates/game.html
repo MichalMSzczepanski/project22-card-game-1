@@ -180,6 +180,15 @@
                 <button type="submit" class="btn btn-outline-secondary">Zagraj</button>
             </div>
         </form>
+
+        <form class="mt-2" method="post" th:if="${view.canSwapHand()}"
+              th:action="@{/games/{id}/swap-hand(id=${view.gameId()})}"
+              onsubmit="return confirm('Zrzucić całą rękę i dobrać nową? To działa tylko raz na grę.');">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+            <button type="submit" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-arrow-repeat"></i> Wymień rękę (raz na grę)
+            </button>
+        </form>
     </div>
 </div>
 
