@@ -90,11 +90,15 @@ game:
     # from the game. A player currently expected to act is exempt from this regardless (see GameService).
     disconnect-seconds: 60
     leave-banner-seconds: 10
+    # Bounds for the host's optional per-game answer/ranking timeout override at creation.
+    min-custom-seconds: 10
+    max-custom-seconds: 180
   max-nickname-length: 20
   max-blank-card-length: 120
   code-length: 5
   poll-interval-seconds: 3
   max-active-games: 50
+  max-target-score: 100
   scoring:
     podium-size: 3
     podium-points: [3, 2, 1]

@@ -84,6 +84,62 @@ class GameServiceTest {
     }
 
     @Test
+    void gameEndsEarlyOnceTargetScoreIsReachedInsteadOfWaitingOutAllRounds() {
+        Game game = gameService.createGame(freePacks(), 20, 3, null, null);
+        Player leader = gameService.join(game.getId(), "Ala");
+        gameService.join(game.getId(), "Bartek");
+        gameService.join(game.getId(), "Celina");
+        startGame(game);
+
+        // round 1: a2's submission takes 1st place (3 pts) — reaches the target score of 3 immediately.
+        List<Player> answerers = game.answerersInOrder();
+        Player a1 = answerers.get(0);
+        Player a2 = answerers.get(1);
+        gameService.submitAnswer(game.getId(), a1.getId(), a1.getHand().get(0).getId());
+        gameService.submitAnswer(game.getId(), a2.getId(), a2.getHand().get(0).getId());
+        Submission submissionOfA2 = game.getCurrentRound().getSubmissions().stream()
+                .filter(s -> s.getAuthor().getId().equals(a2.getId())).findFirst().orElseThrow();
+        Submission submissionOfA1 = game.getCurrentRound().getSubmissions().stream()
+                .filter(s -> s.getAuthor().getId().equals(a1.getId())).findFirst().orElseThrow();
+        gameService.submitRanking(game.getId(), leader.getId(), submissionOfA2.getId(), 1);
+        gameService.submitRanking(game.getId(), leader.getId(), submissionOfA1.getId(), 2);
+        assertThat(a2.getPoints()).isEqualTo(3);
+        assertThat(game.getStatus()).isEqualTo(GameStatus.REVEALED);
+
+        nextRound(game);
+        assertThat(game.getStatus()).isEqualTo(GameStatus.FINISHED);
+        assertThat(game.getCurrentRound().getNumber()).isEqualTo(1); // never got to round 2
+    }
+
+    @Test
+    void customTimeoutsOverrideTheGlobalDefaultsForThatGameOnly() {
+        Game custom = gameService.createGame(freePacks(), 20, null, 11, 12);
+        assertThat(custom.getAnswerSecondsOverride()).isEqualTo(11);
+        assertThat(custom.getRankingSecondsOverride()).isEqualTo(12);
+        assertThat(custom.effectiveAnswerSeconds(60)).isEqualTo(11);
+        assertThat(custom.effectiveRankingSeconds(45)).isEqualTo(12);
+
+        Game defaultTimeouts = createGame(freePacks());
+        assertThat(defaultTimeouts.getAnswerSecondsOverride()).isNull();
+        assertThat(defaultTimeouts.effectiveAnswerSeconds(60)).isEqualTo(60);
+    }
+
+    @Test
+    void rejectsOutOfRangeTargetScoreOrCustomTimeouts() {
+        assertThatThrownBy(() -> gameService.createGame(freePacks(), 20, 0, null, null))
+                .isInstanceOf(InvalidGameActionException.class)
+                .hasMessageContaining("Próg punktowy");
+        assertThatThrownBy(() -> gameService.createGame(freePacks(), 20, gameProperties.maxTargetScore() + 1, null, null))
+                .isInstanceOf(InvalidGameActionException.class);
+        assertThatThrownBy(() -> gameService.createGame(freePacks(), 20, null, 1, null))
+                .isInstanceOf(InvalidGameActionException.class)
+                .hasMessageContaining("Czas na odpowiedzi");
+        assertThatThrownBy(() -> gameService.createGame(freePacks(), 20, null, null, 99999))
+                .isInstanceOf(InvalidGameActionException.class)
+                .hasMessageContaining("Czas na rankingu");
+    }
+
+    @Test
     void playsOneFullRoundWithCorrectScoring() {
         Game game = createGame(freePacks());
         Player leader = gameService.join(game.getId(), "Ala");

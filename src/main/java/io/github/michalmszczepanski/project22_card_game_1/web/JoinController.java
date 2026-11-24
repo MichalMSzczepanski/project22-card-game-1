@@ -34,19 +34,28 @@ public class JoinController {
         model.addAttribute("maxNicknameLength", gameProperties.maxNicknameLength());
         model.addAttribute("codeLength", gameProperties.codeLength());
         model.addAttribute("maxTotalRounds", gameProperties.maxTotalRounds());
+        model.addAttribute("maxTargetScore", gameProperties.maxTargetScore());
+        model.addAttribute("defaultAnswerSeconds", gameProperties.timeouts().answerSeconds());
+        model.addAttribute("defaultRankingSeconds", gameProperties.timeouts().rankingSeconds());
+        model.addAttribute("minCustomSeconds", gameProperties.timeouts().minCustomSeconds());
+        model.addAttribute("maxCustomSeconds", gameProperties.timeouts().maxCustomSeconds());
         return "index";
     }
 
     @PostMapping("/games")
     public String createGame(@RequestParam String nickname,
                               @RequestParam(defaultValue = "10") int totalRounds,
+                              @RequestParam(required = false) Integer targetScore,
+                              @RequestParam(required = false) Integer answerSeconds,
+                              @RequestParam(required = false) Integer rankingSeconds,
                               HttpSession session,
                               RedirectAttributes redirectAttributes) {
         // Etap 1: bez kont, więc zawsze tylko darmowe pakiety (user=null w PackAccessService).
         List<CardPack> activePacks = packAccessService.resolveSelection(null, null);
 
         try {
-            Player player = gameService.createGameAndJoin(activePacks, nickname, null, totalRounds);
+            Player player = gameService.createGameAndJoin(activePacks, nickname, null, totalRounds,
+                    targetScore, answerSeconds, rankingSeconds);
             session.setAttribute("playerId", player.getId());
             session.setAttribute("gameId", player.getGame().getId());
             return "redirect:/games/" + player.getGame().getId();

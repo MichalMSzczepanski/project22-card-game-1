@@ -54,7 +54,8 @@ public record GameViewModel(
         boolean waitingToJoinNextRound,
         boolean canUseBlankCard,
         int maxBlankCardLength,
-        boolean canSwapHand
+        boolean canSwapHand,
+        Integer targetScore
 ) {
 
     public record PlayerRow(String id, String nickname, int points, boolean leader, boolean me) {
@@ -161,8 +162,10 @@ public record GameViewModel(
 
         int secondsLeft = 0;
         if (round != null) {
-            int timeoutSeconds = game.getStatus() == GameStatus.ANSWERING ? properties.timeouts().answerSeconds()
-                    : game.getStatus() == GameStatus.RANKING ? properties.timeouts().rankingSeconds()
+            int timeoutSeconds = game.getStatus() == GameStatus.ANSWERING
+                    ? game.effectiveAnswerSeconds(properties.timeouts().answerSeconds())
+                    : game.getStatus() == GameStatus.RANKING
+                    ? game.effectiveRankingSeconds(properties.timeouts().rankingSeconds())
                     : game.getStatus() == GameStatus.REVEALED ? properties.timeouts().revealSeconds() : -1;
             if (timeoutSeconds >= 0) {
                 long elapsed = Duration.between(round.getPhaseStartedAt(), Instant.now()).getSeconds();
@@ -220,7 +223,8 @@ public record GameViewModel(
                 waitingToJoinNextRound,
                 canUseBlankCard,
                 properties.maxBlankCardLength(),
-                canSwapHand
+                canSwapHand,
+                game.getTargetScore()
         );
     }
 

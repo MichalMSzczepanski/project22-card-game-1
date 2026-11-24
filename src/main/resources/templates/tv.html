@@ -41,7 +41,8 @@
     </div>
 
     <div th:unless="${view.status().name() == 'LOBBY' or view.status().name() == 'FINISHED'}">
-        <span class="badge bg-secondary fs-4 mb-3">Runda <span th:text="${view.roundNumber()}"></span>/<span th:text="${view.totalRounds()}"></span></span>
+        <span class="badge bg-secondary fs-4 mb-3" th:if="${view.targetScore() == null}">Runda <span th:text="${view.roundNumber()}"></span>/<span th:text="${view.totalRounds()}"></span></span>
+        <span class="badge bg-secondary fs-4 mb-3" th:if="${view.targetScore() != null}">Runda <span th:text="${view.roundNumber()}"></span> &middot; gra do <span th:text="${view.targetScore()}"></span> pkt</span>
 
         <div class="black-card mb-4" th:text="${view.questionCardText()}"></div>
         <p class="fs-5 text-white-50 mb-3" th:if="${view.status().name() == 'ANSWERING' or view.status().name() == 'RANKING'}">

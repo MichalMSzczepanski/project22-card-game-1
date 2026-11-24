@@ -57,6 +57,23 @@ public class Game {
     @Getter
     private int totalRounds;
 
+    /**
+     * Null (the normal case) means "play all {@code totalRounds}". Set, it's an alternative end
+     * condition — first player to reach it ends the game at the next {@code nextRound} click;
+     * {@code totalRounds} still applies underneath as a hard ceiling either way.
+     */
+    @Getter
+    @Setter
+    private Integer targetScore;
+
+    /** Null means "use the global {@code game.timeouts.*} default" — set, a per-game override. */
+    @Getter
+    @Setter
+    private Integer answerSecondsOverride;
+    @Getter
+    @Setter
+    private Integer rankingSecondsOverride;
+
     @Getter
     @Setter
     private boolean familyMode = false;
@@ -170,6 +187,14 @@ public class Game {
     /** Players still in the game — everyone but those who left (explicitly or by going quiet). */
     public List<Player> activePlayers() {
         return players.stream().filter(p -> !p.isLeft()).toList();
+    }
+
+    public int effectiveAnswerSeconds(int globalDefault) {
+        return answerSecondsOverride != null ? answerSecondsOverride : globalDefault;
+    }
+
+    public int effectiveRankingSeconds(int globalDefault) {
+        return rankingSecondsOverride != null ? rankingSecondsOverride : globalDefault;
     }
 
     /**

@@ -32,6 +32,22 @@
             <label class="form-label small text-muted mb-1" for="totalRounds">Liczba rund (ty jako twórca będziesz mógł/mogła wystartować grę)</label>
             <input type="number" id="totalRounds" class="form-control mb-3" name="totalRounds" min="1" th:max="${maxTotalRounds}" value="10">
 
+            <details class="mb-3">
+                <summary class="small text-muted">Ustawienia zaawansowane</summary>
+                <div class="mt-2">
+                    <label class="form-label small text-muted mb-1" for="targetScore">Gra do X punktów (zamiast liczby rund — opcjonalnie)</label>
+                    <input type="number" id="targetScore" class="form-control mb-2" name="targetScore" min="1" th:max="${maxTargetScore}" placeholder="np. 30, puste = wg liczby rund">
+
+                    <label class="form-label small text-muted mb-1" for="answerSeconds">Czas na odpowiedź (s)</label>
+                    <input type="number" id="answerSeconds" class="form-control mb-2" name="answerSeconds"
+                           th:min="${minCustomSeconds}" th:max="${maxCustomSeconds}" th:placeholder="${defaultAnswerSeconds}">
+
+                    <label class="form-label small text-muted mb-1" for="rankingSeconds">Czas na ranking (s)</label>
+                    <input type="number" id="rankingSeconds" class="form-control mb-2" name="rankingSeconds"
+                           th:min="${minCustomSeconds}" th:max="${maxCustomSeconds}" th:placeholder="${defaultRankingSeconds}">
+                </div>
+            </details>
+
             <p class="small text-muted">Darmowe pakiety zawsze w grze — <a th:href="@{/packs}">zobacz pakiety</a>.</p>
 
             <button type="submit" class="btn btn-primary btn-lg w-100">Stwórz grę</button>

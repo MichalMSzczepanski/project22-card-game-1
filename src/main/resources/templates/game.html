@@ -50,7 +50,8 @@
         <div class="text-muted small">Kod gry</div>
         <div class="fs-3 fw-bold font-monospace" th:text="${view.gameId()}"></div>
     </div>
-    <span class="badge bg-secondary fs-6">Runda <span th:text="${view.roundNumber()}"></span>/<span th:text="${view.totalRounds()}"></span></span>
+    <span class="badge bg-secondary fs-6" th:if="${view.targetScore() == null}">Runda <span th:text="${view.roundNumber()}"></span>/<span th:text="${view.totalRounds()}"></span></span>
+    <span class="badge bg-secondary fs-6" th:if="${view.targetScore() != null}">Runda <span th:text="${view.roundNumber()}"></span> &middot; gra do <span th:text="${view.targetScore()}"></span> pkt</span>
 </div>
 
 <div class="d-flex justify-content-end gap-2 mb-3" th:if="${view.status().name() != 'FINISHED'}">

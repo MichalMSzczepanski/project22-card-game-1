@@ -42,17 +42,42 @@ public class GameService {
     }
 
     public Game createGame(List<CardPack> activePacks, int totalRounds) {
+        return createGame(activePacks, totalRounds, null, null, null);
+    }
+
+    public Game createGame(List<CardPack> activePacks, int totalRounds, Integer targetScore,
+                            Integer answerSecondsOverride, Integer rankingSecondsOverride) {
         if (totalRounds < 1 || totalRounds > gameProperties.maxTotalRounds()) {
             throw new InvalidGameActionException("Liczba rund musi być między 1 i " + gameProperties.maxTotalRounds() + ".");
         }
+        if (targetScore != null && (targetScore < 1 || targetScore > gameProperties.maxTargetScore())) {
+            throw new InvalidGameActionException("Próg punktowy musi być między 1 i " + gameProperties.maxTargetScore() + ".");
+        }
+        validateCustomTimeout(answerSecondsOverride, "odpowiedzi");
+        validateCustomTimeout(rankingSecondsOverride, "rankingu");
         if (gameRepository.countByStatusNot(GameStatus.FINISHED) >= gameProperties.maxActiveGames()) {
             throw new InvalidGameActionException("Za dużo aktywnych gier w tej chwili — spróbuj ponownie za chwilę.");
         }
         Game game = new Game(gameCodeGenerator.generate(), totalRounds);
         game.setActivePacks(activePacks);
+        game.setTargetScore(targetScore);
+        game.setAnswerSecondsOverride(answerSecondsOverride);
+        game.setRankingSecondsOverride(rankingSecondsOverride);
         game = gameRepository.save(game);
-        log.info("Nowa gra {} (pakiety: {}, rund: {})", game.getId(), activePacks.stream().map(CardPack::getName).toList(), totalRounds);
+        log.info("Nowa gra {} (pakiety: {}, rund: {}, próg: {})", game.getId(),
+                activePacks.stream().map(CardPack::getName).toList(), totalRounds, targetScore);
         return game;
+    }
+
+    private void validateCustomTimeout(Integer seconds, String label) {
+        if (seconds == null) {
+            return;
+        }
+        int min = gameProperties.timeouts().minCustomSeconds();
+        int max = gameProperties.timeouts().maxCustomSeconds();
+        if (seconds < min || seconds > max) {
+            throw new InvalidGameActionException("Czas na " + label + " musi być między " + min + " i " + max + " s.");
+        }
     }
 
     public Player join(String gameId, String nickname) {
@@ -88,8 +113,9 @@ public class GameService {
      * Creates a game and immediately joins its creator as the first player, as one transaction —
      * if the nickname is invalid, the whole thing rolls back (no orphaned empty game left in the DB).
      */
-    public Player createGameAndJoin(List<CardPack> activePacks, String nickname, Long appUserId, int totalRounds) {
-        Game game = createGame(activePacks, totalRounds);
+    public Player createGameAndJoin(List<CardPack> activePacks, String nickname, Long appUserId, int totalRounds,
+                                     Integer targetScore, Integer answerSecondsOverride, Integer rankingSecondsOverride) {
+        Game game = createGame(activePacks, totalRounds, targetScore, answerSecondsOverride, rankingSecondsOverride);
         return join(game.getId(), nickname, appUserId);
     }
 
@@ -272,7 +298,8 @@ public class GameService {
         }
 
         if (game.getStatus() == GameStatus.ANSWERING
-                && Instant.now().isAfter(round.getPhaseStartedAt().plusSeconds(gameProperties.timeouts().answerSeconds()))) {
+                && Instant.now().isAfter(round.getPhaseStartedAt().plusSeconds(
+                        game.effectiveAnswerSeconds(gameProperties.timeouts().answerSeconds())))) {
             for (Player player : game.answerersInOrder()) {
                 if (!round.hasSubmitted(player) && !player.getHand().isEmpty()) {
                     Card card = player.getHand().get(random.nextInt(player.getHand().size()));
@@ -283,7 +310,8 @@ public class GameService {
             }
             advanceToRankingIfComplete(game, round);
         } else if (game.getStatus() == GameStatus.RANKING
-                && Instant.now().isAfter(round.getPhaseStartedAt().plusSeconds(gameProperties.timeouts().rankingSeconds()))) {
+                && Instant.now().isAfter(round.getPhaseStartedAt().plusSeconds(
+                        game.effectiveRankingSeconds(gameProperties.timeouts().rankingSeconds())))) {
             log.info("Gra {}: czas na ustalenie kolejności minął, odkrywam wyniki z tym co jest", gameId);
             reveal(game, round);
         }
@@ -310,10 +338,14 @@ public class GameService {
             throw new InvalidGameActionException("Tylko admin może to zrobić.");
         }
 
-        if (round.getNumber() >= game.getTotalRounds()) {
+        boolean reachedRoundCeiling = round.getNumber() >= game.getTotalRounds();
+        boolean reachedTargetScore = game.getTargetScore() != null
+                && game.activePlayers().stream().anyMatch(p -> p.getPoints() >= game.getTargetScore());
+        if (reachedRoundCeiling || reachedTargetScore) {
             game.setStatus(GameStatus.FINISHED);
             recordFinalScores(game);
-            log.info("Gra {} zakończona po {} rundach", gameId, game.getTotalRounds());
+            log.info("Gra {} zakończona po {} rundach{}", gameId, round.getNumber(),
+                    reachedTargetScore ? " (osiągnięto próg " + game.getTargetScore() + " pkt)" : "");
             return;
         }
 
@@ -466,7 +498,8 @@ public class GameService {
         }
 
         if (game.getNextGameId() == null) {
-            Game newGame = createGame(game.getActivePacks(), game.getTotalRounds());
+            Game newGame = createGame(game.getActivePacks(), game.getTotalRounds(), game.getTargetScore(),
+                    game.getAnswerSecondsOverride(), game.getRankingSecondsOverride());
             for (Player oldPlayer : game.activePlayers()) {
                 Player newPlayer = join(newGame.getId(), oldPlayer.getNickname(), oldPlayer.getAppUserId());
                 oldPlayer.setNextPlayerId(newPlayer.getId());

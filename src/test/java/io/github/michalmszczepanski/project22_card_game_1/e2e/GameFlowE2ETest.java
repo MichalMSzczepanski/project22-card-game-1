@@ -415,6 +415,47 @@ class GameFlowE2ETest {
 
     @Test
     @Transactional
+    void creatingAGameLeavesTargetScoreAndCustomTimeoutsBlankByDefaultOverRealHttp() throws Exception {
+        // Mirrors a real browser submitting the lobby form with the optional advanced <input>
+        // fields present but left empty (name=targetScore, value="") — must NOT 400 trying to
+        // bind "" to Integer, must just mean "use defaults", same as the field being absent.
+        MvcResult result = postAsPlayer("Host", "/", "/games", Map.of(
+                "nickname", "Host",
+                "totalRounds", "10",
+                "targetScore", "",
+                "answerSeconds", "",
+                "rankingSeconds", ""));
+        assertThat(result.getResponse().getStatus()).isEqualTo(302);
+        String location = result.getResponse().getHeader("Location");
+        String gameId = location.substring(location.lastIndexOf('/') + 1);
+
+        Game game = gameRepository.findById(gameId).orElseThrow();
+        assertThat(game.getTargetScore()).isNull();
+        assertThat(game.getAnswerSecondsOverride()).isNull();
+        assertThat(game.getRankingSecondsOverride()).isNull();
+    }
+
+    @Test
+    @Transactional
+    void creatingAGameWithTargetScoreAndCustomTimeoutsOverRealHttp() throws Exception {
+        MvcResult result = postAsPlayer("Host2", "/", "/games", Map.of(
+                "nickname", "Host2",
+                "totalRounds", "20",
+                "targetScore", "25",
+                "answerSeconds", "30",
+                "rankingSeconds", "20"));
+        assertThat(result.getResponse().getStatus()).isEqualTo(302);
+        String location = result.getResponse().getHeader("Location");
+        String gameId = location.substring(location.lastIndexOf('/') + 1);
+
+        Game game = gameRepository.findById(gameId).orElseThrow();
+        assertThat(game.getTargetScore()).isEqualTo(25);
+        assertThat(game.getAnswerSecondsOverride()).isEqualTo(30);
+        assertThat(game.getRankingSecondsOverride()).isEqualTo(20);
+    }
+
+    @Test
+    @Transactional
     void tvLobbyEmbedsAJoinQrCodeThatRendersAsAPng() throws Exception {
         String gameId = createGame("Host", 10);
 

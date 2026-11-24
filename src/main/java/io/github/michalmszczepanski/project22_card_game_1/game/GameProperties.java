@@ -19,13 +19,23 @@ public record GameProperties(
         Scoring scoring,
         // Blunt cap on concurrent non-FINISHED games (DEPLOY.md § 3) — protects resources even
         // though a lazily-pruned game (README § "Limit tego podejścia") can inflate the count.
-        int maxActiveGames
+        int maxActiveGames,
+        // Ceiling for Game.targetScore ("tryb do X punktów") — alternative to maxTotalRounds.
+        int maxTargetScore
 ) {
 
     public record Players(int min, int max) {
     }
 
-    public record Timeouts(int answerSeconds, int rankingSeconds, int revealSeconds, int disconnectSeconds, int leaveBannerSeconds) {
+    public record Timeouts(
+            int answerSeconds,
+            int rankingSeconds,
+            int revealSeconds,
+            int disconnectSeconds,
+            int leaveBannerSeconds,
+            // Bounds for the host's optional per-game answerSeconds/rankingSeconds override.
+            int minCustomSeconds,
+            int maxCustomSeconds) {
     }
 
     /** podiumSize is the ceiling — the actual podium is also capped by how many submissions a round has. */
