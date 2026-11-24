@@ -46,4 +46,4 @@ Cel: grywalne w internecie, bezpieczne, bez kosztów-niespodzianek.
 - ⬜ Kolejne zestawy okolicznościowe × pokolenia
 - ⬜ Własny pakiet kart na zamówienie (impreza firmowa, panieński)
 - ✅ Dobrowolne przekazanie roli admina gry
-- ⬜ **Easter eggi i uatrakcyjnienia** (hat trick, zmartwychwstanie, underdog bonus, runda-bonus x2, finałowa runda x3, Rando) — pełna lista z przykładowymi tekstami: [`MECHANICS.md`](MECHANICS.md) → „Easter eggi i uatrakcyjnienia”. Zasada: śmieszny tekst przed nową mechaniką punktową.
+- 🟨 **Easter eggi i uatrakcyjnienia** — 6 tekstowych (hat trick, zero bohater, zmartwychwstanie, bratnie dusze, sucha seria, zgaszony ekran) ✅; mechaniki z punktami (underdog bonus, runda-bonus x2, finałowa runda x3, Rando) ⬜. Pełna lista z przykładowymi tekstami: [`MECHANICS.md`](MECHANICS.md) → „Easter eggi i uatrakcyjnienia”. Zasada: śmieszny tekst przed nową mechaniką punktową.

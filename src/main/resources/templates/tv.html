@@ -25,6 +25,8 @@
         <span th:text="${view.justLeftWasKick()} ? 'został(a) usunięty(a) z gry.' : 'opuścił(a) grę.'"></span>
     </div>
 
+    <div class="alert alert-info py-2" th:if="${view.easterEggText() != null}" th:text="${view.easterEggText()}"></div>
+
     <p class="small text-white-50 mb-3" th:if="${view.status().name() != 'FINISHED'}">
         Admin: <strong th:text="${view.hasAdmin()} ? ${view.adminNickname()} : 'Brak admina'"></strong>
     </p>

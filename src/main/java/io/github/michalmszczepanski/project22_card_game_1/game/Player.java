@@ -72,6 +72,16 @@ public class Player {
     @Setter
     private String nextPlayerId;
 
+    /** Consecutive rounds won (1st place) / played without scoring — drives the "hat trick" and "sucha seria" easter eggs. */
+    @Getter
+    private int winStreak = 0;
+    @Getter
+    private int scorelessStreak = 0;
+
+    /** Set once, at the game's halfway point, if this player was in last place then ("zmartwychwstanie" easter egg). */
+    @Getter
+    private boolean lastAtMidpoint = false;
+
     /** Bumped on every request this player's own browser makes, so a stale value means a closed tab. */
     @Getter
     @Setter
@@ -118,5 +128,15 @@ public class Player {
 
     public void touch() {
         this.lastSeenAt = Instant.now();
+    }
+
+    /** Updates the streaks the easter eggs watch — called once per round for every answerer. */
+    public void registerRoundResult(boolean wonFirstPlace, boolean scoredPoints) {
+        winStreak = wonFirstPlace ? winStreak + 1 : 0;
+        scorelessStreak = scoredPoints ? 0 : scorelessStreak + 1;
+    }
+
+    public void markLastAtMidpoint() {
+        this.lastAtMidpoint = true;
     }
 }

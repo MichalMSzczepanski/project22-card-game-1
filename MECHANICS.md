@@ -58,15 +58,16 @@ Rozmiar podium i punkty za miejsce są konfigurowalne (`game.scoring.podium-size
 - Gracz, który wyszedł (sam, przez timeout albo wyrzucony), wypada z kolejki prowadzących; jego zdobyte punkty i zagrane karty zostają w historii rundy.
 - Gdy wyjdzie ostatni gracz, gra jest usuwana.
 
-## Easter eggi i uatrakcyjnienia ⚠️ (pomysły, jeszcze nie w kodzie)
+## Easter eggi i uatrakcyjnienia
 > Zasada numer jeden: **śmieszny tekst > nowa mechanika punktowa**. To gra towarzyska, nie ranking e-sportowy — każdy dodatek ma rozśmieszyć stół, nie skomplikować liczenie punktów. Jeśli coś z poniższego trzeba wybrać jako pierwsze — wybierz tekst, nie punkty.
 
-### Easter eggi (zdarzenie → tekst na ekranie/TV, bez wpływu na punkty)
-- **Hat trick** — ten sam gracz wygrywa (1. miejsce podium) 3 rundy z rzędu → „🔥 {nick} jest nie do zatrzymania! Ktoś niech go/ją sprawdzi pod kątem oszustwa.”
+### Easter eggi (zdarzenie → tekst na ekranie/TV, bez wpływu na punkty) ✅ zrobione
+`EasterEggService` (pakiet `game`), wołany z `GameService` po punktacji rundy / starcie rundy / końcu gry / `pruneDisconnectedPlayers`. Komunikat trafia do `Game.lastEasterEggText` (`showEasterEgg`), widoczny jako baner w `game.html`/`tv.html` (`view.easterEggText()`) na `game.timeouts.leave-banner-seconds`. Tylko jeden komunikat na raz — kolejny nadpisuje poprzedni.
+- **Hat trick** — ten sam gracz wygrywa (1. miejsce podium) 3 rundy z rzędu → „🔥 {nick} jest nie do zatrzymania! Ktoś niech go/ją sprawdzi pod kątem oszustwa.” (`Player.winStreak`)
 - **Zero bohater** — gracz kończy całą grę z 0 punktami → „{nick}: liczy się udział. Serio. No prawie serio.”
-- **Zmartwychwstanie** — gracz na ostatnim miejscu w połowie gry kończy na 1. miejscu → „Niespodzianka! {nick} wraca z martwych i bierze wszystko.”
+- **Zmartwychwstanie** — gracz na ostatnim miejscu w połowie gry (`Player.lastAtMidpoint`, zapisywane w `totalRounds/2`) kończy na 1. miejscu → „Niespodzianka! {nick} wraca z martwych i bierze wszystko.”
 - **Bratnie dusze** — remis na 1. miejscu na koniec gry → „{nick} i {nick2}: tytuł do podziału. Albo do rewanżu.”
-- **Sucha seria** — gracz nie zdobywa punktów w 5 rundach z rzędu (ale wciąż gra) → „{nick} zbiera materiał na stand-up o porażkach.”
+- **Sucha seria** — gracz nie zdobywa punktów w 5 rundach z rzędu (ale wciąż gra) → „{nick} zbiera materiał na stand-up o porażkach.” (`Player.scorelessStreak`)
 - **Zgaszony ekran w idealnym momencie** — gracz rozłączony (`pruneDisconnectedPlayers`) akurat gdy prowadził w punktach → „{nick} zniknął w (dosłownie) najlepszym momencie.”
 
 ### Mechaniki z innych gier — co by się tu sprawdziło, a co nie

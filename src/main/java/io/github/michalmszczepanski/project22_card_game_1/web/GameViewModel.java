@@ -55,7 +55,8 @@ public record GameViewModel(
         boolean canUseBlankCard,
         int maxBlankCardLength,
         boolean canSwapHand,
-        Integer targetScore
+        Integer targetScore,
+        String easterEggText
 ) {
 
     public record PlayerRow(String id, String nickname, int points, boolean leader, boolean me) {
@@ -181,6 +182,12 @@ public record GameViewModel(
             justLeftWasKick = game.isLastLeftWasKick();
         }
 
+        String easterEggText = null;
+        if (game.getLastEasterEggText() != null
+                && Duration.between(game.getLastEasterEggAt(), Instant.now()).getSeconds() < properties.timeouts().leaveBannerSeconds()) {
+            easterEggText = game.getLastEasterEggText();
+        }
+
         boolean isAdmin = me.isPresent() && game.isAdmin(me.get().getId());
         String adminNickname = game.getAdminPlayerId() == null ? null
                 : game.findPlayer(game.getAdminPlayerId()).map(Player::getNickname).orElse(null);
@@ -224,7 +231,8 @@ public record GameViewModel(
                 canUseBlankCard,
                 properties.maxBlankCardLength(),
                 canSwapHand,
-                game.getTargetScore()
+                game.getTargetScore(),
+                easterEggText
         );
     }
 

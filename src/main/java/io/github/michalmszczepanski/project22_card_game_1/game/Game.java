@@ -147,6 +147,16 @@ public class Game {
     @Setter
     private String nextGameId;
 
+    /**
+     * One-off "fun fact" banner (MECHANICS.md "Easter eggi") — text only, never affects scoring.
+     * Set by {@link EasterEggService}; read by the view for a window of
+     * {@code game.timeouts.leave-banner-seconds}, the same as {@link #lastLeftNickname}.
+     */
+    @Getter
+    private String lastEasterEggText;
+    @Getter
+    private Instant lastEasterEggAt;
+
     @Version
     private Long version;
 
@@ -223,5 +233,11 @@ public class Game {
         this.lastLeftNickname = nickname;
         this.lastLeftAt = Instant.now();
         this.lastLeftWasKick = kicked;
+    }
+
+    /** Posts a one-off easter egg message (MECHANICS.md) — overwrites any still-showing one. */
+    public void showEasterEgg(String text) {
+        this.lastEasterEggText = text;
+        this.lastEasterEggAt = Instant.now();
     }
 }

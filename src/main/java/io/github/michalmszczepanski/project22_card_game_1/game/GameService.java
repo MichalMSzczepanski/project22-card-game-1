@@ -32,6 +32,7 @@ public class GameService {
     private final GameRepository gameRepository;
     private final GameCodeGenerator gameCodeGenerator;
     private final CardRepository cardRepository;
+    private final EasterEggService easterEggService;
     private final GameScoreRecordRepository gameScoreRecordRepository;
     private final AppUserRepository appUserRepository;
     private final GameProperties gameProperties;
@@ -261,7 +262,7 @@ public class GameService {
     }
 
     private void reveal(Game game, Round round) {
-        scoreRound(round);
+        scoreRound(game, round);
         game.setStatus(GameStatus.REVEALED);
         round.restartPhaseTimer();
         log.info("Gra {}: runda {} zakończona, wyniki odkryte", game.getId(), round.getNumber());
@@ -344,6 +345,7 @@ public class GameService {
         if (reachedRoundCeiling || reachedTargetScore) {
             game.setStatus(GameStatus.FINISHED);
             recordFinalScores(game);
+            easterEggService.onGameFinished(game);
             log.info("Gra {} zakończona po {} rundach{}", gameId, round.getNumber(),
                     reachedTargetScore ? " (osiągnięto próg " + game.getTargetScore() + " pkt)" : "");
             return;
@@ -359,6 +361,7 @@ public class GameService {
         Card questionCard = drawCard(game, CardType.QUESTION);
         Player leader = game.nextLeader();
         int number = game.getCurrentRound() == null ? 1 : game.getCurrentRound().getNumber() + 1;
+        easterEggService.captureMidpointStandings(game, number);
         game.setCurrentRound(new Round(number, leader, questionCard));
         game.setStatus(GameStatus.ANSWERING);
     }
@@ -380,10 +383,11 @@ public class GameService {
      * scores — points per place from {@code game.scoring.podium-points}. An unranked submission (outside
      * the podium, or a round that timed out before the leader placed it) simply scores 0.
      */
-    private void scoreRound(Round round) {
+    private void scoreRound(Game game, Round round) {
         for (Ranking ranking : round.getRankings()) {
             ranking.getSubmission().getAuthor().addPoints(Round.pointsForRank(ranking.getRank(), gameProperties.scoring().podiumPoints()));
         }
+        easterEggService.afterRoundScored(game, round, gameProperties.scoring().podiumPoints());
     }
 
     private void dealUpToHandSize(Game game, Player player) {
@@ -478,6 +482,7 @@ public class GameService {
         game.setStatus(GameStatus.FINISHED);
         if (hasStarted) {
             recordFinalScores(game);
+            easterEggService.onGameFinished(game);
         }
         log.info("Gra {} zakończona przedwcześnie", game.getId());
     }
@@ -585,8 +590,11 @@ public class GameService {
             if (exempt.contains(player.getId())) {
                 continue;
             }
-            if (player.getLastSeenAt().isBefore(cutoff) && removePlayer(game, player, false)) {
-                return; // game got deleted — nothing left to prune
+            if (player.getLastSeenAt().isBefore(cutoff)) {
+                easterEggService.onPlayerDisconnected(game, player);
+                if (removePlayer(game, player, false)) {
+                    return; // game got deleted — nothing left to prune
+                }
             }
         }
     }
