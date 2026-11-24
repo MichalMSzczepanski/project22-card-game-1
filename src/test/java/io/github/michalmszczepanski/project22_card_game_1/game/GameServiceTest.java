@@ -358,6 +358,22 @@ class GameServiceTest {
     }
 
     @Test
+    void roomHoldsUpToTenPlayersAndRejectsAnEleventh() {
+        Game game = createGame(freePacks());
+        for (int i = 1; i <= gameProperties.players().max(); i++) {
+            gameService.join(game.getId(), "P" + i);
+        }
+        assertThat(game.activePlayers()).hasSize(gameProperties.players().max());
+
+        assertThatThrownBy(() -> gameService.join(game.getId(), "OneTooMany"))
+                .isInstanceOf(InvalidGameActionException.class)
+                .hasMessage("Pokój jest pełny (max " + gameProperties.players().max() + " graczy).");
+
+        startGame(game);
+        assertThat(game.getStatus()).isEqualTo(GameStatus.ANSWERING);
+    }
+
+    @Test
     void onlyAdminCanStartGame() {
         Game game = createGame(freePacks());
         Player admin = gameService.join(game.getId(), "Ala");

@@ -77,7 +77,7 @@ logging:
 game:
   players:
     min: 3
-    max: 5
+    max: 10
   hand-size: 7
   # Ceiling only — the host picks the actual round count (1..max-total-rounds) when creating the game.
   max-total-rounds: 20
