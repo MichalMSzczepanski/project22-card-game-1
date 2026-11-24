@@ -120,9 +120,10 @@ a potem dla każdej: poszerz → zaktualizuj dane → zwęż, tak jak wyżej.
 - [ ] **Easter eggi i uatrakcyjnienia** (hat trick, underdog bonus, runda-bonus, Rando...) — lista z przykładowymi tekstami: [`MECHANICS.md`](MECHANICS.md) → „Easter eggi i uatrakcyjnienia”.
 
 ### Panel admina aplikacji (operator serwisu — nie mylić z adminem gry)
-Osobna część pod `/admin`, tylko dla właściciela serwisu. Dostęp: rola `ADMIN` w aplikacji **i** Cloudflare Access (darmowy, logowanie przed wejściem na stronę) — panel niewidoczny dla świata.
-- [ ] **Dashboard**: gry teraz / dziś / w tygodniu, gracze online, średnia liczba graczy na grę, % gier dokończonych do końca, porzucone gry, średni czas gry.
-- [ ] **Gry na żywo**: lista aktywnych gier (kod, faza, runda, liczba graczy, ostatnia aktywność); podgląd stanu; akcje: zakończ grę, usuń porzuconą, „sprzątnij teraz” wszystkie stare.
+Osobna część pod `/admin`, tylko dla właściciela serwisu. Dostęp: rola `OPERATOR` (encja `Operator`, zero związku z kontami graczy) **i** docelowo Cloudflare Access (darmowy, logowanie przed wejściem na stronę, `DEPLOY.md`) — panel niewidoczny dla świata.
+- [x] **Minimalna wersja zrobiona** — `/admin` (`AdminController`, `AdminDashboardService`), osobna tożsamość operatora: encja `Operator` + `OperatorUserDetailsService`, własny filter chain w `SecurityConfig` (`DaoAuthenticationProvider` scoped tylko do `/admin/**`, zero związku z `AppUser`). Konto tworzone tylko przez `OperatorSeeder` z env var (`OPERATOR_USERNAME`/`OPERATOR_PASSWORD`), nigdy przez formularz — puste domyślnie, brak konta lokalnie.
+- [x] **Dashboard** (częściowo): liczba aktywnych/zakończonych gier. Reszta (dziś/w tygodniu, gracze online, średnie, % dokończonych) — niezrobione, czeka na Postgres (dane nie przeżywają restartu).
+- [x] **Gry na żywo** (częściowo): lista aktywnych gier (kod, faza, runda, liczba graczy, czy ma admina) + akcja „zakończ” (`GameService.forceEndGame`, bez wymogu bycia adminem w grze). „Usuń porzuconą”/„sprzątnij teraz wszystkie stare” — niezrobione.
 - [ ] **Karty i pakiety**: dodawanie / edycja / wyłączanie kart, przypisanie do pakietu, oznaczenie 18+ / rodzinne, daty sezonowe pakietów; import z CSV. Docelowo zastępuje hardkod w `CardSeeder`.
 - [ ] **Zgłoszone karty**: kolejka zgłoszeń „Zgłoś kartę” — akcje: usuń, popraw, odrzuć zgłoszenie.
 - [ ] **Statystyki kart**: najczęściej wygrywające / przegrywające odpowiedzi, najlepsze pytania, karty nigdy niezagrane.

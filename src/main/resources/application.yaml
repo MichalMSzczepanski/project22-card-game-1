@@ -104,6 +104,13 @@ user:
   max-username-length: 30
   min-password-length: 8
 
+# Panel admina aplikacji (/admin, operator serwisu) — konto istnieje tylko, gdy te dwa są
+# ustawione przez zmienne środowiskowe na realnym deployu (DEPLOY.md); nigdy w repo, nigdy
+# przez formularz. Zostaw puste lokalnie — zero kont operatora.
+operator:
+  bootstrap-username: ${OPERATOR_USERNAME:}
+  bootstrap-password: ${OPERATOR_PASSWORD:}
+
 # Per-IP rate limit on POST /games and POST /games/join — see RateLimitFilter.
 # capacity tokens in the bucket, refilled by refill-tokens every refill-period-seconds.
 rate-limit:

@@ -354,6 +354,17 @@ public class GameService {
     public void endGame(String gameId, String playerId) {
         Game game = requireGame(gameId);
         requireAdmin(game, playerId);
+        endGameInternal(game);
+    }
+
+    /** Operator override (panel admina aplikacji) — no in-game admin check, for /admin use only. */
+    public void forceEndGame(String gameId) {
+        Game game = requireGame(gameId);
+        endGameInternal(game);
+        log.info("Gra {} zakończona przez operatora", gameId);
+    }
+
+    private void endGameInternal(Game game) {
         if (game.getStatus() == GameStatus.FINISHED) {
             return;
         }
@@ -362,7 +373,7 @@ public class GameService {
         if (hasStarted) {
             recordFinalScores(game);
         }
-        log.info("Gra {} zakończona przedwcześnie", gameId);
+        log.info("Gra {} zakończona przedwcześnie", game.getId());
     }
 
     /** Explicit "Opuść grę" — the player clicked the button. */

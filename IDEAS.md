@@ -156,7 +156,7 @@ Tor 1 (UI) jest realny do zrobienia w etapie 1 — mały, czysto techniczny refa
 
 ## 8. Panel admina aplikacji (operator serwisu) — rozwinięcie
 
-*(już: README TODO sekcja „Panel admina aplikacji" — tu rozwinięte o konkretne propozycje implementacji, bo w kodzie dziś nie ma żadnego fragmentu tego panelu: sprawdzone, brak `/admin`, brak roli w `AppUser`, brak zapytań agregujących)*
+*(już: README TODO sekcja „Panel admina aplikacji" — **minimalna wersja zrobiona** dokładnie wg propozycji niżej: osobna encja `Operator`, własny filter chain, `OperatorSeeder` z env var. Reszta sekcji — karty/pakiety, moderacja, zdrowie systemu — wciąż tylko pomysł.)*
 
 ### Dostęp i autoryzacja — operator to nie gracz, osobne konto od zera
 

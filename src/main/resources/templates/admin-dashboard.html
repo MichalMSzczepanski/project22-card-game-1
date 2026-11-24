@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="pl" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Panel admina</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f4f5f7; }
+    </style>
+</head>
+<body>
+<div class="container py-4" style="max-width: 760px;">
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h4 mb-0">Panel admina</h1>
+    <form method="post" th:action="@{/admin/logout}">
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+        <button type="submit" class="btn btn-sm btn-outline-secondary">Wyloguj</button>
+    </form>
+</div>
+
+<div class="alert alert-danger" th:if="${error}" th:text="${error}"></div>
+<div class="alert alert-success" th:if="${info}" th:text="${info}"></div>
+
+<div class="row mb-4">
+    <div class="col-6">
+        <div class="card text-center shadow-sm">
+            <div class="card-body">
+                <div class="fs-2 fw-bold" th:text="${view.activeGames()}"></div>
+                <div class="text-muted small">aktywne gry</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6">
+        <div class="card text-center shadow-sm">
+            <div class="card-body">
+                <div class="fs-2 fw-bold" th:text="${view.finishedGames()}"></div>
+                <div class="text-muted small">zakończone</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<h2 class="h6">Gry na żywo</h2>
+<table class="table table-sm bg-white shadow-sm">
+    <thead>
+        <tr>
+            <th>Kod</th>
+            <th>Faza</th>
+            <th>Runda</th>
+            <th>Graczy</th>
+            <th>Admin?</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr th:each="g : ${view.liveGames()}">
+            <td class="font-monospace" th:text="${g.id()}"></td>
+            <td th:text="${g.status()}"></td>
+            <td th:text="${g.roundNumber()} + '/' + ${g.totalRounds()}"></td>
+            <td th:text="${g.playerCount()}"></td>
+            <td th:text="${g.hasAdmin()} ? 'tak' : 'BRAK'"></td>
+            <td>
+                <form method="post" th:action="@{/admin/games/{id}/end(id=${g.id()})}"
+                      onsubmit="return confirm('Zakończyć tę grę?');">
+                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                    <button type="submit" class="btn btn-sm btn-outline-danger">Zakończ</button>
+                </form>
+            </td>
+        </tr>
+        <tr th:if="${view.liveGames().isEmpty()}">
+            <td colspan="6" class="text-muted text-center">Brak aktywnych gier.</td>
+        </tr>
+    </tbody>
+</table>
+
+</div>
+</body>
+</html>
