@@ -17,6 +17,7 @@
     <h1 class="h4 mb-0">Panel admina</h1>
     <div class="d-flex gap-2">
         <a href="/admin/cards" class="btn btn-sm btn-outline-secondary">Karty i pakiety</a>
+        <a href="/admin/reports" class="btn btn-sm btn-outline-secondary">Zgłoszone karty</a>
         <form method="post" th:action="@{/admin/logout}">
             <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
             <button type="submit" class="btn btn-sm btn-outline-secondary">Wyloguj</button>

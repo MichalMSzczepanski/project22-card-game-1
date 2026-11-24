@@ -5,6 +5,9 @@ import com.google.zxing.WriterException;
 import com.google.zxing.client.j2se.MatrixToImageWriter;
 import com.google.zxing.common.BitMatrix;
 import com.google.zxing.qrcode.QRCodeWriter;
+import io.github.michalmszczepanski.project22_card_game_1.admin.CardReportService;
+import io.github.michalmszczepanski.project22_card_game_1.card.CardNotFoundException;
+import io.github.michalmszczepanski.project22_card_game_1.card.InvalidCardActionException;
 import io.github.michalmszczepanski.project22_card_game_1.game.Game;
 import io.github.michalmszczepanski.project22_card_game_1.game.GameNotFoundException;
 import io.github.michalmszczepanski.project22_card_game_1.game.GameProperties;
@@ -39,6 +42,7 @@ public class GameController {
 
     private final GameService gameService;
     private final GameProperties gameProperties;
+    private final CardReportService cardReportService;
 
     @GetMapping
     public String view(@PathVariable String gameId, HttpSession session, Model model,
@@ -231,6 +235,26 @@ public class GameController {
     public String takeOverAdmin(@PathVariable String gameId, HttpSession session, RedirectAttributes redirectAttributes) {
         String playerId = requirePlayerId(session);
         return withErrorHandling(gameId, redirectAttributes, () -> gameService.takeOverAdmin(gameId, playerId));
+    }
+
+    /** "Zgłoś kartę" (README TODO "Zgłoszone karty") — any player, on any card they can currently see. */
+    @PostMapping("/report-card")
+    public String reportCard(@PathVariable String gameId,
+                              @RequestParam Long cardId,
+                              @RequestParam(required = false) String note,
+                              HttpSession session,
+                              RedirectAttributes redirectAttributes) {
+        String playerId = requirePlayerId(session);
+        try {
+            Game game = gameService.getGame(gameId);
+            String nickname = game.findPlayer(playerId).map(Player::getNickname).orElse("Nieznany gracz");
+            cardReportService.reportCard(cardId, nickname, note);
+            redirectAttributes.addFlashAttribute("info", "Zgłoszono kartę. Dzięki!");
+        } catch (GameNotFoundException | CardNotFoundException | InvalidCardActionException e) {
+            log.debug("Gra {}: zgłoszenie karty odrzucone — {}", gameId, e.getMessage());
+            redirectAttributes.addFlashAttribute("error", e.getMessage());
+        }
+        return "redirect:/games/" + gameId;
     }
 
     private String requirePlayerId(HttpSession session) {

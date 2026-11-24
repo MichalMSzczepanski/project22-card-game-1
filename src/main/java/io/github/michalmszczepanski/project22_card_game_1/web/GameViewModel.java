@@ -25,6 +25,7 @@ public record GameViewModel(
         int roundNumber,
         int totalRounds,
         String questionCardText,
+        Long questionCardId,
         List<PlayerRow> players,
         boolean inGame,
         boolean isLeader,
@@ -71,8 +72,11 @@ public record GameViewModel(
     public record RankOption(int position, int points) {
     }
 
-    /** rank/points are 0 when a round timed out before the leader placed this submission. */
-    public record RevealRow(String authorNickname, String cardText, int rank, int points) {
+    /**
+     * rank/points are 0 when a round timed out before the leader placed this submission.
+     * cardId is null for a "pusta karta" (blank card) submission — there's no Card to report.
+     */
+    public record RevealRow(String authorNickname, String cardText, int rank, int points, Long cardId) {
     }
 
     public static GameViewModel of(Game game, String currentPlayerId, GameProperties properties) {
@@ -126,10 +130,13 @@ public record GameViewModel(
 
         if (round != null && game.getStatus() == GameStatus.REVEALED) {
             reveal = round.getSubmissions().stream()
-                    .map(s -> rankingFor(round, s)
-                            .map(r -> new RevealRow(s.getAuthor().getNickname(), s.text(),
-                                    r.getRank(), Round.pointsForRank(r.getRank(), properties.scoring().podiumPoints())))
-                            .orElseGet(() -> new RevealRow(s.getAuthor().getNickname(), s.text(), 0, 0)))
+                    .map(s -> {
+                        Long cardId = s.getCard() == null ? null : s.getCard().getId();
+                        return rankingFor(round, s)
+                                .map(r -> new RevealRow(s.getAuthor().getNickname(), s.text(),
+                                        r.getRank(), Round.pointsForRank(r.getRank(), properties.scoring().podiumPoints()), cardId))
+                                .orElseGet(() -> new RevealRow(s.getAuthor().getNickname(), s.text(), 0, 0, cardId));
+                    })
                     .toList();
         }
 
@@ -201,6 +208,7 @@ public record GameViewModel(
                 round == null ? 0 : round.getNumber(),
                 game.getTotalRounds(),
                 round == null ? null : round.getQuestionCard().getText(),
+                round == null ? null : round.getQuestionCard().getId(),
                 players,
                 me.isPresent(),
                 isLeader,
