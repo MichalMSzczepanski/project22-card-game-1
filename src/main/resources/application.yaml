@@ -86,6 +86,7 @@ game:
   max-nickname-length: 20
   code-length: 5
   poll-interval-seconds: 3
+  max-active-games: 50
   scoring:
     podium-size: 3
     podium-points: [3, 2, 1]

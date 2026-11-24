@@ -45,6 +45,9 @@ public class GameService {
         if (totalRounds < 1 || totalRounds > gameProperties.maxTotalRounds()) {
             throw new InvalidGameActionException("Liczba rund musi być między 1 i " + gameProperties.maxTotalRounds() + ".");
         }
+        if (gameRepository.countByStatusNot(GameStatus.FINISHED) >= gameProperties.maxActiveGames()) {
+            throw new InvalidGameActionException("Za dużo aktywnych gier w tej chwili — spróbuj ponownie za chwilę.");
+        }
         Game game = new Game(gameCodeGenerator.generate(), totalRounds);
         game.setActivePacks(activePacks);
         game = gameRepository.save(game);

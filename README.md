@@ -141,7 +141,7 @@ Osobna część pod `/admin`, tylko dla właściciela serwisu. Dostęp: rola `AD
 ### Bezpieczeństwo / odporność
 - [ ] Rate limiting per IP (np. Bucket4j), szczególnie na `POST /games`, `POST /games/join` (zgadywanie 5-znakowych kodów), `/login`, `/register`.
 - [ ] Za Cloudflare: prawdziwe IP klienta z `CF-Connecting-IP` (`server.forward-headers-strategy` / filtr) — potrzebne do rate limitu i logów.
-- [ ] Limity na grę: max liczba aktywnych gier globalnie i per IP/użytkownik.
+- [x] Limity na grę: max liczba aktywnych gier globalnie — `GameProperties.maxActiveGames` (domyślnie 50), sprawdzane w `GameService.createGame`. Per IP/użytkownik wciąż czeka na prawdziwe IP (`DEPLOY.md` sekcja 3) — zrobimy razem z rate limitingiem.
 - [ ] Twarde limity zasobów: `-Xmx` dla JVM, `mem_limit`/`cpus` w docker compose.
 - [ ] Polling co 3 s musi się mieścić w rate limicie (10 graczy + TV ≈ 4 req/s na grę).
 

@@ -15,7 +15,10 @@ public record GameProperties(
         int maxNicknameLength,
         int codeLength,
         int pollIntervalSeconds,
-        Scoring scoring
+        Scoring scoring,
+        // Blunt cap on concurrent non-FINISHED games (DEPLOY.md § 3) — protects resources even
+        // though a lazily-pruned game (README § "Limit tego podejścia") can inflate the count.
+        int maxActiveGames
 ) {
 
     public record Players(int min, int max) {
