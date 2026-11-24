@@ -13,6 +13,7 @@ public record GameProperties(
         int maxTotalRounds,
         Timeouts timeouts,
         int maxNicknameLength,
+        int maxBlankCardLength,
         int codeLength,
         int pollIntervalSeconds,
         Scoring scoring,

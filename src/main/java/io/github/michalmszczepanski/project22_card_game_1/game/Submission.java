@@ -36,9 +36,23 @@ public class Submission {
     @JoinColumn(name = "card_id")
     private Card card;
 
+    /** Set instead of {@code card} when this is a "blank card" — the player's own typed answer. */
+    private String customText;
+
     public Submission(Player author, Card card) {
         this.id = UUID.randomUUID().toString();
         this.author = author;
         this.card = card;
+    }
+
+    public Submission(Player author, String customText) {
+        this.id = UUID.randomUUID().toString();
+        this.author = author;
+        this.customText = customText;
+    }
+
+    /** The text to show for this submission — the custom typed answer, or the card's own text. */
+    public String text() {
+        return customText != null ? customText : card.getText();
     }
 }

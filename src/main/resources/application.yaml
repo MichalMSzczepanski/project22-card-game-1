@@ -91,6 +91,7 @@ game:
     disconnect-seconds: 60
     leave-banner-seconds: 10
   max-nickname-length: 20
+  max-blank-card-length: 120
   code-length: 5
   poll-interval-seconds: 3
   max-active-games: 50

@@ -136,6 +136,35 @@ public class GameService {
         advanceToRankingIfComplete(game, round);
     }
 
+    /** "Pusta karta" (README TODO) — raz na całą grę, gracz wpisuje własną odpowiedź zamiast karty z ręki. */
+    public void submitBlankAnswer(String gameId, String playerId, String text) {
+        Game game = requireGame(gameId);
+        requireStatus(game, GameStatus.ANSWERING);
+        Round round = game.getCurrentRound();
+        Player player = requirePlayer(game, playerId);
+
+        if (round.getLeader().getId().equals(playerId)) {
+            throw new InvalidGameActionException("Prowadzący nie odpowiada w tej rundzie.");
+        }
+        if (round.hasSubmitted(player)) {
+            throw new InvalidGameActionException("Już wysłałeś odpowiedź w tej rundzie.");
+        }
+        if (player.isUsedBlankCard()) {
+            throw new InvalidGameActionException("Pustą kartę możesz zagrać tylko raz na grę.");
+        }
+        String trimmed = text == null ? "" : text.trim();
+        if (trimmed.isEmpty() || trimmed.length() > gameProperties.maxBlankCardLength()) {
+            throw new InvalidGameActionException(
+                    "Odpowiedź musi mieć 1-" + gameProperties.maxBlankCardLength() + " znaków.");
+        }
+
+        player.markBlankCardUsed();
+        round.addSubmission(new Submission(player, trimmed));
+        log.debug("Gra {}: {} wysłał pustą kartę w rundzie {}", gameId, playerId, round.getNumber());
+
+        advanceToRankingIfComplete(game, round);
+    }
+
     private void advanceToRankingIfComplete(Game game, Round round) {
         List<Player> answerers = game.answerersInOrder();
         if (round.getSubmissions().size() == answerers.size()) {

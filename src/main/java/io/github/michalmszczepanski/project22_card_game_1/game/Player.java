@@ -59,6 +59,10 @@ public class Player {
     @Getter
     private boolean left = false;
 
+    /** True once this player has played their one "blank card" (own typed answer) for the whole game. */
+    @Getter
+    private boolean usedBlankCard = false;
+
     /** Bumped on every request this player's own browser makes, so a stale value means a closed tab. */
     @Getter
     @Setter
@@ -93,6 +97,10 @@ public class Player {
 
     public void markLeft() {
         this.left = true;
+    }
+
+    public void markBlankCardUsed() {
+        this.usedBlankCard = true;
     }
 
     public void touch() {

@@ -51,7 +51,9 @@ public record GameViewModel(
         boolean hasAdmin,
         boolean canTakeOverAdmin,
         boolean canAdvanceRound,
-        boolean waitingToJoinNextRound
+        boolean waitingToJoinNextRound,
+        boolean canUseBlankCard,
+        int maxBlankCardLength
 ) {
 
     public record PlayerRow(String id, String nickname, int points, boolean leader, boolean me) {
@@ -90,6 +92,7 @@ public record GameViewModel(
                 && me.get().getJoinedAtRound().equals(round.getNumber());
 
         List<HandCard> hand = List.of();
+        boolean canUseBlankCard = false;
         List<RankTarget> rankTargets = List.of();
         List<RankOption> rankOptions = List.of();
         List<RevealRow> reveal = List.of();
@@ -101,9 +104,12 @@ public record GameViewModel(
                 hand = player.getHand().stream().map(c -> new HandCard(c.getId(), c.getText())).toList();
             }
 
+            canUseBlankCard = game.getStatus() == GameStatus.ANSWERING && !isLeader && !hasSubmitted
+                    && !player.isUsedBlankCard();
+
             if (game.getStatus() == GameStatus.RANKING && isLeader) {
                 rankTargets = round.unrankedSubmissions().stream()
-                        .map(s -> new RankTarget(s.getId(), s.getCard().getText()))
+                        .map(s -> new RankTarget(s.getId(), s.text()))
                         .toList();
                 rankOptions = IntStream.rangeClosed(1, round.podiumSize(properties.scoring().podiumSize()))
                         .filter(rank -> !round.usedRanks().contains(rank))
@@ -115,9 +121,9 @@ public record GameViewModel(
         if (round != null && game.getStatus() == GameStatus.REVEALED) {
             reveal = round.getSubmissions().stream()
                     .map(s -> rankingFor(round, s)
-                            .map(r -> new RevealRow(s.getAuthor().getNickname(), s.getCard().getText(),
+                            .map(r -> new RevealRow(s.getAuthor().getNickname(), s.text(),
                                     r.getRank(), Round.pointsForRank(r.getRank(), properties.scoring().podiumPoints())))
-                            .orElseGet(() -> new RevealRow(s.getAuthor().getNickname(), s.getCard().getText(), 0, 0)))
+                            .orElseGet(() -> new RevealRow(s.getAuthor().getNickname(), s.text(), 0, 0)))
                     .toList();
         }
 
@@ -205,7 +211,9 @@ public record GameViewModel(
                 game.hasAdmin(),
                 canTakeOverAdmin,
                 canAdvanceRound,
-                waitingToJoinNextRound
+                waitingToJoinNextRound,
+                canUseBlankCard,
+                properties.maxBlankCardLength()
         );
     }
 

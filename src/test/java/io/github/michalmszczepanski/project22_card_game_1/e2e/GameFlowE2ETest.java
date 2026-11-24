@@ -347,6 +347,26 @@ class GameFlowE2ETest {
 
     @Test
     @Transactional
+    void playerCanSubmitABlankCardOverRealHttp() throws Exception {
+        String gameId = createGame("Host", 10);
+        joinGame("Guest1", gameId);
+        joinGame("Guest2", gameId);
+        startGame("Host", gameId);
+
+        Game game = gameRepository.findById(gameId).orElseThrow();
+        String answererId = game.answerersInOrder().get(0).getId();
+        String answererNickname = game.answerersInOrder().get(0).getNickname();
+
+        MvcResult submitted = postAsPlayer(answererNickname, "/games/" + gameId,
+                "/games/" + gameId + "/blank-answer", Map.of("text", "własna odpowiedź"));
+        assertThat(submitted.getResponse().getStatus()).isEqualTo(302);
+
+        Player answerer = game.findPlayer(answererId).orElseThrow();
+        assertThat(answerer.isUsedBlankCard()).isTrue();
+    }
+
+    @Test
+    @Transactional
     void tvLobbyEmbedsAJoinQrCodeThatRendersAsAPng() throws Exception {
         String gameId = createGame("Host", 10);
 

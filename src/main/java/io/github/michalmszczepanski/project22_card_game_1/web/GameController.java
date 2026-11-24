@@ -123,6 +123,16 @@ public class GameController {
         return withErrorHandling(gameId, redirectAttributes, () -> gameService.submitAnswer(gameId, playerId, cardId));
     }
 
+    @PostMapping("/blank-answer")
+    public String submitBlankAnswer(@PathVariable String gameId,
+                                     @RequestParam String text,
+                                     HttpSession session,
+                                     RedirectAttributes redirectAttributes) {
+        String playerId = requirePlayerId(session);
+        return withErrorHandling(gameId, redirectAttributes,
+                () -> gameService.submitBlankAnswer(gameId, playerId, text));
+    }
+
     @PostMapping("/rankings")
     public String submitRanking(@PathVariable String gameId,
                                  @RequestParam String submissionId,
