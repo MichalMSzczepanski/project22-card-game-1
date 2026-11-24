@@ -49,8 +49,10 @@ public class CustomOAuth2UserService {
             String username = (email != null && !email.isBlank())
                     ? email
                     : provider.name().toLowerCase() + ":" + providerId;
-            log.info("Nowa rejestracja użytkownika przez {}: {}", provider, username);
-            return appUserRepository.save(new AppUser(username, provider, providerId));
+            // Never log username/email here — for an email-based username that's PII (CODING.md).
+            AppUser saved = appUserRepository.save(new AppUser(username, provider, providerId));
+            log.info("Nowa rejestracja użytkownika przez {} (appUserId={})", provider, saved.getId());
+            return saved;
         });
     }
 }

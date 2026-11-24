@@ -14,7 +14,7 @@ Cel: grywalne w internecie, bezpieczne, bez kosztów-niespodzianek.
 - ✅ Do 10 graczy
 - ✅ Punktacja podium 3-2-1 (MECHANICS.md)
 - ✅ Dłuższy timeout rozłączenia (60s, zgaszony ekran telefonu nie wyrzuca z gry) i priorytet prowadzącego (30s) na „Następna runda”
-- ⬜ Wyłączenie zakupów i kont; „Tematyczne zestawy — wkrótce” + licznik „Chcę ten zestaw!”
+- 🟨 Wyłączenie zakupów ✅ (konta gracza **wróciły** wcześniej niż planowano — patrz v2 niżej, FORMAL.md); „Tematyczne zestawy — wkrótce” ✅, licznik „Chcę ten zestaw!” ⬜
 - ⬜ Własne karty i własny wygląd
 - ⬜ Postgres + Flyway, sprzątanie porzuconych gier
 - ⬜ Rate limiting, limity zasobów
@@ -35,8 +35,8 @@ Cel: grywalne w internecie, bezpieczne, bez kosztów-niespodzianek.
 - ✅ Zarządzanie kartami i pakietami z panelu (`/admin/cards`, CRUD + import tekstowy) — `CardSeeder` zostaje jako seed startowy
 
 ## v2 — freemium (po walidacji, patrz BIZNES.md)
-- ⬜ Forma prawna, regulamin, polityka prywatności, znak towarowy
-- ⬜ Konta (wraca logowanie) + operator płatności
+- ⚠️ Forma prawna, regulamin, **polityka prywatności** (teraz zaległość, nie "do zrobienia" — konta już zbierają dane, patrz FORMAL.md), znak towarowy
+- 🟨 Konta (wraca logowanie) ✅ (wcześniej niż planowano, README „Propozycje kart od graczy”) + operator płatności ⬜
 - ⬜ 2 pierwsze zestawy tematyczne
 - ⬜ Pakiet admina działa dla całego stołu
 - ⬜ Panel admina aplikacji: zakupy, zwroty, przychody

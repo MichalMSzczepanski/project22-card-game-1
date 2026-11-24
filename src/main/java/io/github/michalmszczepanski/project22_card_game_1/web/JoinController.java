@@ -7,10 +7,13 @@ import io.github.michalmszczepanski.project22_card_game_1.game.GameProperties;
 import io.github.michalmszczepanski.project22_card_game_1.game.GameService;
 import io.github.michalmszczepanski.project22_card_game_1.game.InvalidGameActionException;
 import io.github.michalmszczepanski.project22_card_game_1.game.Player;
+import io.github.michalmszczepanski.project22_card_game_1.security.CurrentUserResolver;
 import io.github.michalmszczepanski.project22_card_game_1.settings.AppSettingsService;
+import io.github.michalmszczepanski.project22_card_game_1.user.AppUser;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -29,9 +32,13 @@ public class JoinController {
     private final PackAccessService packAccessService;
     private final GameProperties gameProperties;
     private final AppSettingsService appSettingsService;
+    private final CurrentUserResolver currentUserResolver;
 
     @GetMapping("/")
-    public String index(Model model) {
+    public String index(Authentication authentication, Model model) {
+        AppUser user = currentUserResolver.resolve(authentication);
+        model.addAttribute("loggedIn", user != null);
+        model.addAttribute("username", user == null ? null : user.getUsername());
         model.addAttribute("maintenanceMode", appSettingsService.isMaintenanceMode());
         model.addAttribute("announcementBanner", appSettingsService.announcementBanner());
         model.addAttribute("maxPlayers", gameProperties.players().max());
@@ -52,14 +59,17 @@ public class JoinController {
                               @RequestParam(required = false) Integer targetScore,
                               @RequestParam(required = false) Integer answerSeconds,
                               @RequestParam(required = false) Integer rankingSeconds,
+                              Authentication authentication,
                               HttpSession session,
                               RedirectAttributes redirectAttributes) {
-        // Etap 1: bez kont, więc zawsze tylko darmowe pakiety (user=null w PackAccessService).
-        List<CardPack> activePacks = packAccessService.resolveSelection(null, null);
+        // Purchases are still disabled (Etap 1, FORMAL.md), so a logged-in user has no paid packs
+        // to pick from yet — resolveSelection(user, null) is still just the free packs either way.
+        AppUser user = currentUserResolver.resolve(authentication);
+        List<CardPack> activePacks = packAccessService.resolveSelection(user, null);
 
         try {
-            Player player = gameService.createGameAndJoin(activePacks, nickname, null, totalRounds,
-                    targetScore, answerSeconds, rankingSeconds);
+            Player player = gameService.createGameAndJoin(activePacks, nickname, user == null ? null : user.getId(),
+                    totalRounds, targetScore, answerSeconds, rankingSeconds);
             session.setAttribute("playerId", player.getId());
             session.setAttribute("gameId", player.getGame().getId());
             return "redirect:/games/" + player.getGame().getId();
@@ -73,11 +83,13 @@ public class JoinController {
     @PostMapping("/games/join")
     public String joinGame(@RequestParam String code,
                             @RequestParam String nickname,
+                            Authentication authentication,
                             HttpSession session,
                             RedirectAttributes redirectAttributes) {
         String gameId = code.trim().toUpperCase();
+        AppUser user = currentUserResolver.resolve(authentication);
         try {
-            Player player = gameService.join(gameId, nickname, null);
+            Player player = gameService.join(gameId, nickname, user == null ? null : user.getId());
             session.setAttribute("playerId", player.getId());
             session.setAttribute("gameId", gameId);
             return "redirect:/games/" + gameId;

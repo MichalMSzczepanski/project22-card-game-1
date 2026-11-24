@@ -1,6 +1,7 @@
 package io.github.michalmszczepanski.project22_card_game_1.security;
 
 import io.github.michalmszczepanski.project22_card_game_1.admin.OperatorUserDetailsService;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
@@ -11,6 +12,7 @@ import org.springframework.security.config.annotation.web.configurers.CsrfConfig
 import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.web.SecurityFilterChain;
 
 /**
@@ -21,15 +23,12 @@ import org.springframework.security.web.SecurityFilterChain;
  *   <li>{@link #adminFilterChain} — {@code /admin/**}, the operator panel (README TODO "Panel
  *       admina aplikacji"). A completely separate identity from players: its own
  *       {@link OperatorUserDetailsService}/{@code Operator} table, own {@link DaoAuthenticationProvider}
- *       scoped to just this chain — never mixed with the (disabled) player-account machinery below.</li>
- *   <li>{@link #appFilterChain} — everything else, {@code permitAll()}.</li>
+ *       scoped to just this chain — never mixed with the player-account machinery below.</li>
+ *   <li>{@link #appFilterChain} — everything else. {@code permitAll()} on every route (gameplay
+ *       stays guest-friendly, README invariant) plus optional player login/registration — accounts
+ *       are now back (README TODO "Propozycje kart od graczy"), but nothing is gated behind login
+ *       yet, so authorization stays wide open until something actually needs it.</li>
  * </ul>
- *
- * Etap 1 (README TODO, FORMAL.md): player rejestracja/logowanie/OAuth są wyłączone — the public
- * app is anonymous, hence {@code permitAll()} in {@link #appFilterChain}. Entities/services for
- * player accounts (packages {@code user}/{@code security}: {@code UserService},
- * {@code DatabaseUserDetailsService}, {@code CustomOAuth2UserService}, {@code AuthenticationAuditListener})
- * stay in the repo unused — ready to reconnect in etap 2 (ROADMAP.md) instead of rewriting them.
  */
 @Configuration
 @EnableWebSecurity
@@ -78,8 +77,40 @@ public class SecurityConfig {
 
     @Bean
     @Order(3)
-    public SecurityFilterChain appFilterChain(HttpSecurity http) throws Exception {
-        http.authorizeHttpRequests(auth -> auth.anyRequest().permitAll());
+    public SecurityFilterChain appFilterChain(HttpSecurity http,
+                                               DatabaseUserDetailsService databaseUserDetailsService,
+                                               PasswordEncoder passwordEncoder,
+                                               CustomOAuth2UserService customOAuth2UserService,
+                                               ObjectProvider<ClientRegistrationRepository> clientRegistrations) throws Exception {
+        // Explicit provider, same reasoning as adminFilterChain: with two UserDetailsService beans
+        // in context (this one + operatorUserDetailsService), Spring Boot won't auto-wire either
+        // into the global AuthenticationManager.
+        DaoAuthenticationProvider playerAuthProvider = new DaoAuthenticationProvider(databaseUserDetailsService);
+        playerAuthProvider.setPasswordEncoder(passwordEncoder);
+
+        http
+                .authenticationProvider(playerAuthProvider)
+                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
+                .formLogin(form -> form
+                        .loginPage("/login")
+                        .defaultSuccessUrl("/", false)
+                        .permitAll())
+                .logout(logout -> logout
+                        .logoutUrl("/logout")
+                        .logoutSuccessUrl("/")
+                        .permitAll());
+
+        // Only wired up once a provider (google, later facebook, ...) is actually configured in
+        // application.yaml — otherwise there is no ClientRegistrationRepository bean and enabling
+        // oauth2Login() would fail application startup.
+        if (clientRegistrations.getIfAvailable() != null) {
+            http.oauth2Login(oauth2 -> oauth2
+                    .loginPage("/login")
+                    .userInfoEndpoint(info -> info
+                            .oidcUserService(customOAuth2UserService::processOidcUser)
+                            .userService(customOAuth2UserService::processOAuth2User)));
+        }
+
         return http.build();
     }
 }

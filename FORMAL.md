@@ -39,8 +39,14 @@ Pomysł: gracze wpłacają stawkę (np. 10 zł), pula rozkłada się na zwycięz
 ## Etap 1 — darmowe MVP (zasady)
 - Płatne pakiety wyłączone; zamiast nich „Tematyczne zestawy — wkrótce”, **bez dat i cen** (nic nie obiecujemy).
 - Przycisk „Chcę ten zestaw!” z licznikiem — **bez maila i danych osobowych**; wynik decyduje, które 2 zestawy wydać jako pierwsze.
-- Bez kont i logowania (same nicki) → brak danych osobowych → minimalne obowiązki RODO.
-- Krótka strona „O grze”: gra jest darmowa, nie zbiera danych osobowych, treści 18+ (poza trybem rodzinnym).
+- Gra bez konta zostaje — same nicki, grywalne anonimowo.
+- Krótka strona „O grze”: gra jest darmowa, nie zbiera danych osobowych (poza kontem, patrz niżej), treści 18+ (poza trybem rodzinnym).
+
+### ⚠️ Konta gracza wróciły przed etapem 2 — RODO/polityka prywatności są teraz zaległe, nie „później”
+Login/logowanie (`AuthController`, `AppUser`) zostały odblokowane wcześniej niż planowano (README TODO „Propozycje kart od graczy” — funkcja wymaga trwałej tożsamości gracza). To **łamie** założenie Etapu 1 wyżej („bez kont → minimalne obowiązki RODO”): konto to login + hash hasła (i opcjonalnie e-mail przez OAuth) = dane osobowe, zbierane już teraz, nie w nieokreślonej przyszłości.
+- **Polityka prywatności** — z listy „Do przygotowania” (Etap 2) robi się zaległość already in production, nie coś do zrobienia przed uruchomieniem sprzedaży. Dopisać do strony „O grze” i linku w `register.html`/`login.html`, zanim ruszy prawdziwy ruch.
+- Zakupy/płatności, znak towarowy, forma prawna — **nadal** czekają na etap 2 (sprzedaż), tego konta sam fakt nie zmienia.
+- Niniejsza notatka nie jest poradą prawną — jeśli appka ma realny ruch, konsultacja prawnicza przed, nie po.
 
 ## Etap 2 — freemium (później)
 - Darmowe: baza + tryb rodzinny. Płatne: na start **2 zestawy tematyczne** (wybrane licznikiem).

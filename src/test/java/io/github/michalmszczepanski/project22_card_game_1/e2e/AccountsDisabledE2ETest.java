@@ -13,10 +13,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Etap 1 (README TODO, FORMAL.md): rejestracja, logowanie, OAuth, historia wyników i zakupy
- * pakietów są wyłączone — sprawdza, że te trasy faktycznie nie istnieją (404, nie np. przekierowanie
- * na nieistniejący "/login") i że strony, które zostają ("/" i "/packs"), nie proponują logowania
- * ani kupowania.
+ * Etap 1 (README TODO, FORMAL.md): zakupy pakietów i historia wyników (/stats) są wyłączone —
+ * sprawdza, że te trasy faktycznie nie istnieją (404), i że "/packs" nie proponuje kupowania.
+ * Logowanie/rejestracja gracza WRÓCIŁY (README TODO "Propozycje kart od graczy") — te przypadki
+ * są w {@link AuthE2ETest}, nie tutaj.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -26,11 +26,10 @@ class AccountsDisabledE2ETest {
     private MockMvc mockMvc;
 
     @Test
-    void registrationLoginStatsAndOAuthRoutesNoLongerExist() throws Exception {
-        mockMvc.perform(get("/register")).andExpect(status().isNotFound());
-        mockMvc.perform(post("/register").with(csrf())).andExpect(status().isNotFound());
-        mockMvc.perform(get("/login")).andExpect(status().isNotFound());
+    void statsAndUnconfiguredOAuthRoutesStillDoNotExist() throws Exception {
         mockMvc.perform(get("/stats")).andExpect(status().isNotFound());
+        // No Google client-id/secret configured in this environment -> no ClientRegistrationRepository
+        // bean -> SecurityConfig skips oauth2Login() entirely, so the provider path is genuinely absent.
         mockMvc.perform(get("/oauth2/authorization/google")).andExpect(status().isNotFound());
     }
 
@@ -40,11 +39,9 @@ class AccountsDisabledE2ETest {
     }
 
     @Test
-    void homePageOffersNoLoginOrRegistrationLinks() throws Exception {
+    void homePageOffersNoStatsLinkOrPurchaseFlow() throws Exception {
         mockMvc.perform(get("/"))
                 .andExpect(status().isOk())
-                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("/login"))))
-                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("/register"))))
                 .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("/stats"))));
     }
 
