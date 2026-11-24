@@ -4,6 +4,7 @@ import io.github.michalmszczepanski.project22_card_game_1.card.Card;
 import io.github.michalmszczepanski.project22_card_game_1.card.CardPack;
 import io.github.michalmszczepanski.project22_card_game_1.card.CardPackRepository;
 import io.github.michalmszczepanski.project22_card_game_1.card.PackAudience;
+import io.github.michalmszczepanski.project22_card_game_1.settings.AppSettingsService;
 import io.github.michalmszczepanski.project22_card_game_1.stats.GameScoreRecordRepository;
 import io.github.michalmszczepanski.project22_card_game_1.user.AppUser;
 import io.github.michalmszczepanski.project22_card_game_1.user.AppUserRepository;
@@ -43,6 +44,9 @@ class GameServiceTest {
 
     @Autowired
     private GameRepository gameRepository;
+
+    @Autowired
+    private AppSettingsService appSettingsService;
 
     private List<CardPack> freePacks() {
         return cardPackRepository.findAll().stream().filter(CardPack::isFree).toList();
@@ -122,6 +126,25 @@ class GameServiceTest {
         Game defaultTimeouts = createGame(freePacks());
         assertThat(defaultTimeouts.getAnswerSecondsOverride()).isNull();
         assertThat(defaultTimeouts.effectiveAnswerSeconds(60)).isEqualTo(60);
+    }
+
+    @Test
+    void maintenanceModeBlocksCreatingNewGamesIncludingRematch() {
+        appSettingsService.update(true, null, null, true, true);
+
+        assertThatThrownBy(() -> gameService.createGame(freePacks(), 10))
+                .isInstanceOf(InvalidGameActionException.class)
+                .hasMessageContaining("przerwy technicznej");
+    }
+
+    @Test
+    void adminOverrideReplacesTheStaticMaxActiveGamesLimit() {
+        gameService.createGame(freePacks(), 10);
+        appSettingsService.update(false, null, 1, true, true);
+
+        assertThatThrownBy(() -> gameService.createGame(freePacks(), 10))
+                .isInstanceOf(InvalidGameActionException.class)
+                .hasMessageContaining("Za dużo aktywnych gier");
     }
 
     @Test
@@ -261,6 +284,22 @@ class GameServiceTest {
         assertThatThrownBy(() -> gameService.submitBlankAnswer(game.getId(), a1.getId(), "x".repeat(200)))
                 .isInstanceOf(InvalidGameActionException.class);
         assertThat(a1.isUsedBlankCard()).isFalse();
+    }
+
+    @Test
+    void blankCardIsRejectedWhenAnAdminHasDisabledTheFeature() {
+        Game game = createGame(freePacks());
+        gameService.join(game.getId(), "Ala");
+        gameService.join(game.getId(), "Bartek");
+        gameService.join(game.getId(), "Celina");
+        startGame(game);
+        Player a1 = game.answerersInOrder().get(0);
+
+        appSettingsService.update(false, null, null, false, true);
+
+        assertThatThrownBy(() -> gameService.submitBlankAnswer(game.getId(), a1.getId(), "próba"))
+                .isInstanceOf(InvalidGameActionException.class)
+                .hasMessageContaining("wyłączona przez administratora");
     }
 
     @Test

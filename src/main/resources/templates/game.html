@@ -39,6 +39,7 @@
     <span th:text="${view.justLeftWasKick()} ? 'został(a) usunięty(a) z gry.' : 'opuścił(a) grę.'"></span>
 </div>
 <div class="alert alert-info py-2" th:if="${view.easterEggText() != null}" th:text="${view.easterEggText()}"></div>
+<div class="alert alert-warning py-2" th:if="${view.announcementBanner() != null}" th:text="${view.announcementBanner()}"></div>
 <div class="alert alert-warning py-2" th:if="${view.inGame() and !view.hasAdmin()}">
     Admin opuścił grę — ktoś musi przejąć prowadzenie gry.
     <form method="post" th:action="@{/games/{id}/take-over-admin(id=${view.gameId()})}" class="mt-2">

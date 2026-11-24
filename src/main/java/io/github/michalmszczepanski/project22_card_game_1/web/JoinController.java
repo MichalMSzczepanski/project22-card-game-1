@@ -7,6 +7,7 @@ import io.github.michalmszczepanski.project22_card_game_1.game.GameProperties;
 import io.github.michalmszczepanski.project22_card_game_1.game.GameService;
 import io.github.michalmszczepanski.project22_card_game_1.game.InvalidGameActionException;
 import io.github.michalmszczepanski.project22_card_game_1.game.Player;
+import io.github.michalmszczepanski.project22_card_game_1.settings.AppSettingsService;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,9 +28,12 @@ public class JoinController {
     private final GameService gameService;
     private final PackAccessService packAccessService;
     private final GameProperties gameProperties;
+    private final AppSettingsService appSettingsService;
 
     @GetMapping("/")
     public String index(Model model) {
+        model.addAttribute("maintenanceMode", appSettingsService.isMaintenanceMode());
+        model.addAttribute("announcementBanner", appSettingsService.announcementBanner());
         model.addAttribute("maxPlayers", gameProperties.players().max());
         model.addAttribute("maxNicknameLength", gameProperties.maxNicknameLength());
         model.addAttribute("codeLength", gameProperties.codeLength());

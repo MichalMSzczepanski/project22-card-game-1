@@ -19,7 +19,7 @@ Cel: grywalne w internecie, bezpieczne, bez kosztów-niespodzianek.
 - ⬜ Postgres + Flyway, sprzątanie porzuconych gier
 - ⬜ Rate limiting, limity zasobów
 - ⬜ Deployment: VPS + Cloudflare Tunnel
-- 🟨 Panel admina aplikacji — wersja minimalna: dashboard + gry na żywo ✅; karty i pakiety ✅; zgłoszone karty ✅; moderacja/ustawienia serwisu ⬜
+- 🟨 Panel admina aplikacji — wersja minimalna: dashboard + gry na żywo ✅; karty i pakiety ✅; zgłoszone karty ✅; ustawienia serwisu bez redeployu ✅; moderacja ⬜
 
 ## v1.1 — więcej zabawy
 - 🟨 Ustawienia gry — liczba rund wybierana przy tworzeniu gry ✅; „do X punktów” i timeouty per-gra ⬜

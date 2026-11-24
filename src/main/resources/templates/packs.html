@@ -24,7 +24,7 @@
         </div>
         <div>
             <span class="badge bg-success" th:if="${pack.free()}"><i class="bi bi-check-lg"></i> w grze</span>
-            <span class="badge bg-secondary" th:unless="${pack.free()}">Tematyczne zestawy — wkrótce</span>
+            <span class="badge bg-secondary" th:if="${!pack.free() and comingSoonBadgeEnabled}">Tematyczne zestawy — wkrótce</span>
         </div>
     </div>
 </div>

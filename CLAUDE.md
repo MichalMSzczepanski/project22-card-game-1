@@ -35,7 +35,7 @@ Java 17, Spring Boot 4.1.2, Maven · Thymeleaf **bez JS** (meta-refresh co 3 s) 
 - Etap 1 zrobiony: zakupy/konta/logowanie/OAuth wyłączone (404), karty wyłącznie własne, do 10 graczy, dołączanie w trakcie gry.
 - Rola admina — zrobiona w całości, spec. README sekcja 5: `Game.adminPlayerId` (`isHost()` usunięty), `GameService.requireAdmin`/`kickPlayer`/`takeOverAdmin`/`transferAdmin` (dobrowolne przekazanie), `forceRevealRound` („Pomiń rundę”), `rematch` („Zagraj jeszcze raz”, idempotentne).
 - Rozgrywka rozszerzona: pusta karta i wymiana ręki (raz na grę), tryb „do X punktów” jako alternatywa dla liczby rund, per-gra nadpisanie timeoutów odpowiedzi/rankingu, kod QR do dołączania na TV. Szczegóły reguł: `MECHANICS.md`, metody: README.
-- Panel admina aplikacji (`/admin`, operator serwisu) — minimalna wersja zrobiona, osobna tożsamość od graczy (`Operator`), bootstrap tylko z env var.
+- Panel admina aplikacji (`/admin`, operator serwisu) — osobna tożsamość od graczy (`Operator`), bootstrap tylko z env var. Zrobione: dashboard + gry na żywo, karty i pakiety (CRUD + import tekstowy), zgłoszone karty (kolejka + usuń/popraw/odrzuć), ustawienia serwisu bez redeployu (tryb serwisowy, baner ogłoszeń, limit aktywnych gier, przełączniki pustej karty/„wkrótce” — nowy pakiet `settings`). Easter eggi tekstowe z MECHANICS.md też zrobione (`EasterEggService`).
 - Rate limiting (Bucket4j, per-IP) na `POST /games`/`/games/join` + `server.forward-headers-strategy=framework`.
 - Deployment: VPS ze stałą ceną + Cloudflare Tunnel; **żadnych usług pay-per-use**.
 - Docelowo Postgres + Flyway. Komunikacja zostaje polling (bez WebSocketów).

@@ -14,6 +14,7 @@ import io.github.michalmszczepanski.project22_card_game_1.game.GameProperties;
 import io.github.michalmszczepanski.project22_card_game_1.game.GameService;
 import io.github.michalmszczepanski.project22_card_game_1.game.InvalidGameActionException;
 import io.github.michalmszczepanski.project22_card_game_1.game.Player;
+import io.github.michalmszczepanski.project22_card_game_1.settings.AppSettingsService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
@@ -43,6 +44,7 @@ public class GameController {
     private final GameService gameService;
     private final GameProperties gameProperties;
     private final CardReportService cardReportService;
+    private final AppSettingsService appSettingsService;
 
     @GetMapping
     public String view(@PathVariable String gameId, HttpSession session, Model model,
@@ -66,7 +68,8 @@ public class GameController {
                     return "redirect:/games/" + game.getNextGameId();
                 }
             }
-            model.addAttribute("view", GameViewModel.of(game, playerId, gameProperties));
+            model.addAttribute("view", GameViewModel.of(game, playerId, gameProperties,
+                    appSettingsService.isBlankCardEnabled(), appSettingsService.announcementBanner()));
             return "game";
         } catch (GameNotFoundException e) {
             return goHome(session, redirectAttributes, "Gra zakończyła się — wszyscy wyszli.");
@@ -83,7 +86,8 @@ public class GameController {
             if (game.getNextGameId() != null) {
                 return "redirect:/games/" + game.getNextGameId() + "/tv";
             }
-            model.addAttribute("view", GameViewModel.of(game, null, gameProperties));
+            model.addAttribute("view", GameViewModel.of(game, null, gameProperties,
+                    appSettingsService.isBlankCardEnabled(), appSettingsService.announcementBanner()));
             return "tv";
         } catch (GameNotFoundException e) {
             return goHome(null, redirectAttributes, "Gra zakończyła się — wszyscy wyszli.");

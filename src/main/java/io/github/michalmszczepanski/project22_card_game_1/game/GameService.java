@@ -5,6 +5,7 @@ import io.github.michalmszczepanski.project22_card_game_1.card.CardPack;
 import io.github.michalmszczepanski.project22_card_game_1.card.CardRepository;
 import io.github.michalmszczepanski.project22_card_game_1.card.CardType;
 import io.github.michalmszczepanski.project22_card_game_1.card.PackAudience;
+import io.github.michalmszczepanski.project22_card_game_1.settings.AppSettingsService;
 import io.github.michalmszczepanski.project22_card_game_1.stats.GameScoreRecord;
 import io.github.michalmszczepanski.project22_card_game_1.stats.GameScoreRecordRepository;
 import io.github.michalmszczepanski.project22_card_game_1.user.AppUserRepository;
@@ -36,6 +37,7 @@ public class GameService {
     private final GameScoreRecordRepository gameScoreRecordRepository;
     private final AppUserRepository appUserRepository;
     private final GameProperties gameProperties;
+    private final AppSettingsService appSettingsService;
 
     @Transactional(readOnly = true)
     public Game getGame(String gameId) {
@@ -48,6 +50,10 @@ public class GameService {
 
     public Game createGame(List<CardPack> activePacks, int totalRounds, Integer targetScore,
                             Integer answerSecondsOverride, Integer rankingSecondsOverride) {
+        if (appSettingsService.isMaintenanceMode()) {
+            throw new InvalidGameActionException(
+                    "Serwis jest tymczasowo w trybie przerwy technicznej — nowe gry są wstrzymane.");
+        }
         if (totalRounds < 1 || totalRounds > gameProperties.maxTotalRounds()) {
             throw new InvalidGameActionException("Liczba rund musi być między 1 i " + gameProperties.maxTotalRounds() + ".");
         }
@@ -56,7 +62,8 @@ public class GameService {
         }
         validateCustomTimeout(answerSecondsOverride, "odpowiedzi");
         validateCustomTimeout(rankingSecondsOverride, "rankingu");
-        if (gameRepository.countByStatusNot(GameStatus.FINISHED) >= gameProperties.maxActiveGames()) {
+        int maxActiveGames = appSettingsService.effectiveMaxActiveGames(gameProperties.maxActiveGames());
+        if (gameRepository.countByStatusNot(GameStatus.FINISHED) >= maxActiveGames) {
             throw new InvalidGameActionException("Za dużo aktywnych gier w tej chwili — spróbuj ponownie za chwilę.");
         }
         Game game = new Game(gameCodeGenerator.generate(), totalRounds);
@@ -165,6 +172,9 @@ public class GameService {
 
     /** "Pusta karta" (README TODO) — raz na całą grę, gracz wpisuje własną odpowiedź zamiast karty z ręki. */
     public void submitBlankAnswer(String gameId, String playerId, String text) {
+        if (!appSettingsService.isBlankCardEnabled()) {
+            throw new InvalidGameActionException("Pusta karta jest tymczasowo wyłączona przez administratora.");
+        }
         Game game = requireGame(gameId);
         requireStatus(game, GameStatus.ANSWERING);
         Round round = game.getCurrentRound();

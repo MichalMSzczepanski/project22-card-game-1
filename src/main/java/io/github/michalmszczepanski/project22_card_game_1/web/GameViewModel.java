@@ -57,7 +57,8 @@ public record GameViewModel(
         int maxBlankCardLength,
         boolean canSwapHand,
         Integer targetScore,
-        String easterEggText
+        String easterEggText,
+        String announcementBanner
 ) {
 
     public record PlayerRow(String id, String nickname, int points, boolean leader, boolean me) {
@@ -79,7 +80,8 @@ public record GameViewModel(
     public record RevealRow(String authorNickname, String cardText, int rank, int points, Long cardId) {
     }
 
-    public static GameViewModel of(Game game, String currentPlayerId, GameProperties properties) {
+    public static GameViewModel of(Game game, String currentPlayerId, GameProperties properties,
+                                    boolean blankCardFeatureEnabled, String announcementBanner) {
         Round round = game.getCurrentRound();
         Optional<Player> me = Optional.ofNullable(currentPlayerId).flatMap(game::findPlayer).filter(p -> !p.isLeft());
 
@@ -113,7 +115,7 @@ public record GameViewModel(
             }
 
             canUseBlankCard = game.getStatus() == GameStatus.ANSWERING && !isLeader && !hasSubmitted
-                    && !player.isUsedBlankCard();
+                    && !player.isUsedBlankCard() && blankCardFeatureEnabled;
             canSwapHand = game.getStatus() == GameStatus.ANSWERING && !isLeader && !hasSubmitted
                     && !player.isUsedHandSwap();
 
@@ -240,7 +242,8 @@ public record GameViewModel(
                 properties.maxBlankCardLength(),
                 canSwapHand,
                 game.getTargetScore(),
-                easterEggText
+                easterEggText,
+                announcementBanner
         );
     }
 

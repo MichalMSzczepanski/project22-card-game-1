@@ -21,8 +21,12 @@
 
 <div class="alert alert-danger" th:if="${error}" th:text="${error}"></div>
 <div class="alert alert-success" th:if="${info}" th:text="${info}"></div>
+<div class="alert alert-warning" th:if="${maintenanceMode}">
+    🚧 Przerwa techniczna — nowe gry są tymczasowo wstrzymane.
+</div>
+<div class="alert alert-warning" th:if="${announcementBanner != null}" th:text="${announcementBanner}"></div>
 
-<div class="card shadow-sm mb-3">
+<div class="card shadow-sm mb-3" th:unless="${maintenanceMode}">
     <div class="card-body">
         <h2 class="card-title h5">Stwórz nową grę</h2>
         <form method="post" th:action="@{/games}">
