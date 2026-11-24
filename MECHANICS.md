@@ -9,10 +9,11 @@
 - Karty pochodzą z pakietów wybranych przy zakładaniu gry. Tryb rodzinny ukrywa karty 18+.
 
 ## Gracze i role
-- **3–5 graczy** (⚠️ docelowo do 10).
-- **Prowadzący** — zmienia się co rundę, po kolei według kolejności dołączenia (wyszli gracze są pomijani). W swojej rundzie nie odpowiada i nie zdobywa punktów.
-- **Admin** — kto założył grę (dołączył pierwszy) automatycznie zostaje adminem; zarządza graczami, trybem rodzinnym i zakończeniem gry, tylko on klika „Start gry”. Gdy ucieknie (opuści grę / zostanie uznany za rozłączonego), rola **nie przechodzi automatycznie** — gra zostaje bez admina, dopóki ktoś nie kliknie „Przejmij admina” (kto pierwszy, ten admin). Pełna specyfikacja: README sekcja 5.
-- **Ekran TV** — wspólny podgląd przebiegu gry, bez akcji.
+- **3–10 graczy**.
+- Dołączenie **w trakcie gry** (nie tylko w lobby) jest możliwe, dopóki gra nie jest `FINISHED` — nowy gracz dostaje pełną rękę, ale siedzi z boku dokładnie jedną (tę, w której dołączył) rundę, zanim zacznie normalnie odpowiadać.
+- **Prowadzący** — zmienia się co rundę, po kolei według kolejności dołączenia (wyszli gracze są pomijani). W swojej rundzie nie odpowiada i nie zdobywa punktów. Jeśli prowadzący zniknie (rozłączenie) w trakcie rundy: w fazie odpowiedzi nikt na niego nie czeka, w fazie wyboru najlepszych wynik i tak odkrywa się po timeoucie, a admin może to przyspieszyć przyciskiem „Pomiń rundę” — w każdym razie prowadzenie w kolejnej rundzie przechodzi dalej (pomijając tych, co wyszli).
+- **Admin** — kto założył grę (dołączył pierwszy) automatycznie zostaje adminem; zarządza graczami (**wyrzucenie gracza**), trybem rodzinnym, zakończeniem gry, pomijaniem zawieszonej rundy i rematchem po końcu gry; tylko on klika „Start gry”. Może **dobrowolnie przekazać** rolę innej osobie bez wychodzenia z gry. Gdy ucieknie (opuści grę / zostanie uznany za rozłączonego), rola **nie przechodzi automatycznie** — gra zostaje bez admina, dopóki ktoś nie kliknie „Przejmij admina” (kto pierwszy, ten admin). Pełna specyfikacja: README sekcja 5.
+- **Ekran TV** — wspólny podgląd przebiegu gry, bez akcji. W lobby pokazuje też kod QR do dołączenia (obok kodu tekstowego).
 
 ## Ręka
 - Na starcie każdy dostaje **7 kart-odpowiedzi** i trzyma je **przez całą grę**.
@@ -20,12 +21,14 @@
 - Przed kolejną rundą dobiera jedną nową — ręka zawsze wraca do 7.
 - Prowadzący w swojej rundzie nic nie zrzuca.
 - Zagrana karta nie wraca do talii do końca gry (brak powtórek).
+- **Pusta karta** — raz na całą grę, zamiast karty z ręki gracz może zagrać własną, wpisaną odpowiedź. Na rankingu wygląda i liczy się jak każda inna — anonimowo, bez oznaczenia.
+- **Wymiana ręki** — raz na całą grę gracz może zrzucić całą rękę (gdy nic nie pasuje) i dobrać nową; zrzucone karty nie wracają do talii.
 
 ## Przebieg rundy
 1. **Pytanie** — prowadzący dostaje kartę-pytanie, widzą ją wszyscy (także TV).
-2. **Odpowiedzi** — każdy gracz poza prowadzącym wybiera jedną kartę z ręki. Limit **60 s**; kto nie zdąży, zagrywa losową kartę z ręki.
-3. **Wybór najlepszych** — prowadzący widzi odpowiedzi potasowane i **anonimowe**, wybiera najlepsze (patrz „Punktacja”). Limit **45 s**.
-4. **Wyniki** — odsłonięcie, kto zagrał co i ile punktów zdobył. Przejście do następnej rundy: pierwsze **30 s** może kliknąć tylko prowadzący tej rundy; jeśli nie kliknie w tym czasie, przycisk odblokowuje się dla każdego.
+2. **Odpowiedzi** — każdy gracz poza prowadzącym wybiera jedną kartę z ręki (albo zagra pustą kartę/wymieni rękę, patrz „Ręka”). Limit **60 s** (domyślny — twórca gry może dla całej gry ustawić inny); kto nie zdąży, zagrywa losową kartę z ręki.
+3. **Wybór najlepszych** — prowadzący widzi odpowiedzi potasowane i **anonimowe**, wybiera najlepsze (patrz „Punktacja”). Limit **45 s** (domyślny, też nadpisywalny per gra).
+4. **Wyniki** — odsłonięcie, kto zagrał co i ile punktów zdobył. Przejście do następnej rundy: pierwsze **30 s** może kliknąć tylko prowadzący tej rundy; jeśli nie kliknie w tym czasie, przycisk odblokowuje się dla każdego (admin zawsze może, nawet w tym oknie). Admin może też w każdej chwili w fazie odpowiedzi/wyboru kliknąć „Pomiń rundę”, żeby natychmiast odkryć wyniki bez czekania na timeout.
 
 ## Punktacja
 Prowadzący wybiera **tylko 3 najlepsze odpowiedzi** — podium:
@@ -45,17 +48,15 @@ Prowadzący wybiera **tylko 3 najlepsze odpowiedzi** — podium:
 Rozmiar podium i punkty za miejsce są konfigurowalne (`game.scoring.podium-size` / `game.scoring.podium-points` w `application.yaml`, `GameProperties.Scoring`), domyślnie 3 miejsca / 3-2-1 pkt. Zaimplementowane w `Round.podiumSize()`/`Round.pointsForRank()` i `GameService.scoreRound`. Runda odkrywa się automatycznie, gdy prowadzący przyzna ostatnie wolne miejsce podium (nie czeka na pozostałe, nieobsadzone odpowiedzi).
 
 ## Koniec gry
-- Twórca gry wybiera liczbę rund **przy tworzeniu gry** (1–20) albo wcześniej przyciskiem „Zakończ grę”. ⚠️ Gra „do X punktów” jako alternatywa — wciąż w planach.
+- Twórca gry wybiera przy tworzeniu gry **albo** liczbę rund (1–20) **albo**, jako alternatywę, tryb „**do X punktów**” — gra kończy się, gdy ktoś pierwszy osiągnie wybrany próg (liczba rund nadal działa pod spodem jako twardy limit bezpieczeństwa, żeby gra bez szans na próg nie trwała wiecznie). Admin może też zawsze zakończyć grę wcześniej przyciskiem „Zakończ grę”.
 - Wygrywa gracz z największą liczbą punktów. Remis = współzwycięstwo.
+- **„Zagraj jeszcze raz”** — po końcu gry admin może jednym kliknięciem założyć nową grę z tymi samymi (wciąż aktywnymi) graczami i pakietami, bez ponownego wpisywania kodu; otwarte karty resztki graczy same ich tam przenoszą.
 
 ## Wyjście i rozłączenie
 - „Opuść grę” — natychmiastowe wyjście. Brak aktywności przez **60 s** = rozłączenie (nie dotyczy gracza, na którego właśnie czeka runda — np. zgaszony ekran telefonu w tym czasie nie wyrzuca z gry).
-- Gracz, który wyszedł, wypada z kolejki prowadzących; jego zdobyte punkty i zagrane karty zostają w historii rundy.
+- Admin może też **wyrzucić** gracza ręcznie (ten może wrócić tym samym kodem — nie pamiętamy wyrzuconych).
+- Gracz, który wyszedł (sam, przez timeout albo wyrzucony), wypada z kolejki prowadzących; jego zdobyte punkty i zagrane karty zostają w historii rundy.
 - Gdy wyjdzie ostatni gracz, gra jest usuwana.
-
-## Planowane rozszerzenia mechaniki
-Szczegóły i kolejność: README → TODO, [`ROADMAP.md`](ROADMAP.md).
-- Pusta karta (raz na grę własna odpowiedź), wymiana całej ręki raz na grę, „Zagraj jeszcze raz”, głos publiczności.
 
 ## Easter eggi i uatrakcyjnienia ⚠️ (pomysły, jeszcze nie w kodzie)
 > Zasada numer jeden: **śmieszny tekst > nowa mechanika punktowa**. To gra towarzyska, nie ranking e-sportowy — każdy dodatek ma rozśmieszyć stół, nie skomplikować liczenie punktów. Jeśli coś z poniższego trzeba wybrać jako pierwsze — wybierz tekst, nie punkty.
