@@ -41,3 +41,5 @@ Java 17, Spring Boot 4.1.2, Maven · Thymeleaf **bez JS** (meta-refresh co 3 s) 
 ## Oszczędzanie tokenów
 - Nie czytaj całego README ani wszystkich plików naraz — tylko sekcje/pliki dotyczące zadania.
 - Odpowiadaj zwięźle; nie powtarzaj treści plików w odpowiedzi.
+- Odpowiadaj dokładnie na zadane pytanie/polecenie. Nie dodawaj nieproszonych fragmentów, list czy kontekstu, o które nikt nie pytał.
+- Gdy nie jesteś pewien zakresu albo intencji — zadaj pytanie, zamiast zgadywać i zwracać ścianę tekstu.
