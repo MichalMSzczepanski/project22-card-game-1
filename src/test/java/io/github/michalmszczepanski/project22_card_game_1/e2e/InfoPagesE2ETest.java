@@ -11,10 +11,14 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/** FORMAL.md etap 1: "Krótka strona 'O grze'" — darmowa, bez danych osobowych, 18+ poza trybem rodzinnym. */
+/**
+ * Static info pages — zero game logic, so just "does it render, does it say the right
+ * things, is it linked from home". FORMAL.md etap 1: "Krótka strona 'O grze'" (darmowa, bez
+ * danych osobowych, 18+ poza trybem rodzinnym) + a short player-facing "Jak grać" tutorial.
+ */
 @SpringBootTest
 @AutoConfigureMockMvc
-class AboutPageE2ETest {
+class InfoPagesE2ETest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -29,9 +33,18 @@ class AboutPageE2ETest {
     }
 
     @Test
-    void homePageLinksToTheAboutPage() throws Exception {
+    void howToPlayPageExplainsPodiumScoringAndRotatingLeader() throws Exception {
+        mockMvc.perform(get("/jak-grac"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("podium")))
+                .andExpect(content().string(containsString("rotuje")));
+    }
+
+    @Test
+    void homePageLinksToBothInfoPages() throws Exception {
         mockMvc.perform(get("/"))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("/o-grze")));
+                .andExpect(content().string(containsString("/o-grze")))
+                .andExpect(content().string(containsString("/jak-grac")));
     }
 }

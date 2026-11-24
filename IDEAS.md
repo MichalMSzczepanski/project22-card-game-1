@@ -288,7 +288,7 @@ Najciekawsza teoretycznie opcja bez łamania „bez JS": long polling przez `Def
 - **Banner cookie** — `FORMAL.md` mówi „nie zbiera danych osobowych", ale nie rozstrzyga explicite, czy cookie sesji (`playerId`/`gameId`) wymaga bannera zgody. Prawdopodobnie nie („ściśle niezbędne do działania usługi" to wyjątek z ePrivacy), ale to osobne pytanie od RODO/danych osobowych, dziś nieadresowane wprost.
 
 ### UX — brakuje warstwy „dla nowego gracza"
-- **Brak w-grze wyjaśnienia reguł** — `MECHANICS.md` jest dla dewelopera, nie dla gracza. Sprawdzone w szablonach: nie ma strony „Jak grać"/tutorialu dla kogoś, kto widzi appkę pierwszy raz na imprezie. Inna rzecz niż planowana strona „O grze" (ta jest o prywatności/legalności, nie o regułach).
+- [x] **Brak w-grze wyjaśnienia reguł** — zrobione: `/jak-grac` (`InfoController`), krótki tutorial, link z `/`. Inna rzecz niż strona „O grze" (ta jest o prywatności/legalności, nie o regułach).
 - **Accessibility** — kontrast kolorów, odróżnienie kart QUESTION/ANSWER dla daltonistów, wielkość fontu na małym ekranie telefonu — zero wzmianki gdziekolwiek.
 
 ### Zaakceptowane, nie przeoczone ryzyko — do nazwania wprost
