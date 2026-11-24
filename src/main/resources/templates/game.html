@@ -269,6 +269,13 @@
     <button type="button" class="btn btn-outline-dark w-100 mt-3" onclick="downloadRecap()">
         <i class="bi bi-camera"></i> Zapisz jako obrazek (udostępnij!)
     </button>
+
+    <form method="post" th:if="${view.isAdmin()}" th:action="@{/games/{id}/rematch(id=${view.gameId()})}">
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+        <button type="submit" class="btn btn-primary w-100 mt-2">
+            <i class="bi bi-arrow-clockwise"></i> Zagraj jeszcze raz
+        </button>
+    </form>
 </div>
 
 <script th:if="${view.status().name() == 'FINISHED'}" src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>

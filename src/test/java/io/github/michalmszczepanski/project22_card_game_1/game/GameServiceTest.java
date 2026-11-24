@@ -644,6 +644,55 @@ class GameServiceTest {
     }
 
     @Test
+    void adminCanStartARematchWithTheSamePlayersAndPacksWithoutRetypingTheCode() {
+        List<CardPack> packs = freePacks();
+        Game game = createGame(packs);
+        Player admin = gameService.join(game.getId(), "Ala");
+        Player bartek = gameService.join(game.getId(), "Bartek");
+        gameService.join(game.getId(), "Celina");
+        gameService.endGame(game.getId(), admin.getId());
+
+        Player newAdmin = gameService.rematch(game.getId(), admin.getId());
+
+        assertThat(game.getNextGameId()).isEqualTo(newAdmin.getGame().getId());
+        assertThat(newAdmin.getNickname()).isEqualTo("Ala");
+        Game newGame = newAdmin.getGame();
+        assertThat(newGame.getStatus()).isEqualTo(GameStatus.LOBBY);
+        assertThat(newGame.getActivePacks()).containsExactlyInAnyOrderElementsOf(packs);
+        assertThat(newGame.getTotalRounds()).isEqualTo(game.getTotalRounds());
+        assertThat(newGame.getPlayers()).extracting(Player::getNickname)
+                .containsExactlyInAnyOrder("Ala", "Bartek", "Celina");
+        assertThat(newGame.isAdmin(newAdmin.getId())).isTrue();
+
+        // bartek's own next page load (still carrying the old session) finds the same new game
+        assertThat(bartek.getNextPlayerId()).isNotNull();
+        assertThat(newGame.findPlayer(bartek.getNextPlayerId()).orElseThrow().getNickname()).isEqualTo("Bartek");
+    }
+
+    @Test
+    void rematchIsIdempotentAndOnlyAdminCanStartIt() {
+        Game game = createGame(freePacks());
+        Player admin = gameService.join(game.getId(), "Ala");
+        Player other = gameService.join(game.getId(), "Bartek");
+        gameService.join(game.getId(), "Celina");
+
+        assertThatThrownBy(() -> gameService.rematch(game.getId(), other.getId()))
+                .isInstanceOf(InvalidGameActionException.class)
+                .hasMessage("Tylko admin może to zrobić.");
+
+        assertThatThrownBy(() -> gameService.rematch(game.getId(), admin.getId()))
+                .isInstanceOf(InvalidGameActionException.class)
+                .hasMessage("Grę można powtórzyć tylko po jej zakończeniu.");
+
+        gameService.endGame(game.getId(), admin.getId());
+        Player firstClick = gameService.rematch(game.getId(), admin.getId());
+        Player secondClick = gameService.rematch(game.getId(), admin.getId());
+
+        assertThat(secondClick.getGame().getId()).isEqualTo(firstClick.getGame().getId());
+        assertThat(secondClick.getId()).isEqualTo(firstClick.getId());
+    }
+
+    @Test
     void adminCanSkipAStuckRoundAndRevealItImmediately() {
         Game game = createGame(freePacks());
         Player admin = gameService.join(game.getId(), "Ala");

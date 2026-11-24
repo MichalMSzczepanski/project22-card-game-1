@@ -134,7 +134,9 @@ public record GameViewModel(
         boolean waitingForMyAction =
                 (game.getStatus() == GameStatus.ANSWERING && !isLeader && !hasSubmitted)
                         || (game.getStatus() == GameStatus.RANKING && isLeader && !rankTargets.isEmpty());
-        boolean autoRefresh = game.getStatus() != GameStatus.FINISHED && !waitingForMyAction;
+        // Kept polling on FINISHED too (not just pre-game phases) so a "Zagraj jeszcze raz" from the
+        // admin can carry everyone else's still-open tab straight into the new game (GameController#view).
+        boolean autoRefresh = !waitingForMyAction;
 
         List<String> winners = List.of();
         List<PlayerRow> finalStandings = List.of();

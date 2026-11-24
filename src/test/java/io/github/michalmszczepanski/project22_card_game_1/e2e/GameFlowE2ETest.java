@@ -387,6 +387,34 @@ class GameFlowE2ETest {
 
     @Test
     @Transactional
+    void adminCanRematchAndEveryoneElsesNextPollLandsThemInTheNewGameOverRealHttp() throws Exception {
+        String gameId = createGame("Host", 1);
+        joinGame("Guest1", gameId);
+        joinGame("Guest2", gameId);
+        startGame("Host", gameId);
+        postAsPlayer("Host", "/games/" + gameId, "/games/" + gameId + "/skip-round", Map.of());
+        nextRound("Host", gameId); // totalRounds=1, so this is the one that finishes the game
+
+        assertThat(gameRepository.findById(gameId).orElseThrow().getStatus()).isEqualTo(GameStatus.FINISHED);
+
+        MvcResult rematch = postAsPlayer("Host", "/games/" + gameId, "/games/" + gameId + "/rematch", Map.of());
+        assertThat(rematch.getResponse().getStatus()).isEqualTo(302);
+        String newGameId = rematch.getResponse().getRedirectedUrl().replace("/games/", "");
+        assertThat(newGameId).isNotEqualTo(gameId);
+
+        // Guest1 never clicked anything — their own browser's next poll of the old (finished) game
+        // picks up the rematch and redirects them straight into the new one.
+        MvcResult guestFollowUp = getAsPlayer("Guest1", "/games/" + gameId);
+        assertThat(guestFollowUp.getResponse().getStatus()).isEqualTo(302);
+        assertThat(guestFollowUp.getResponse().getRedirectedUrl()).isEqualTo("/games/" + newGameId);
+
+        Game newGame = gameRepository.findById(newGameId).orElseThrow();
+        assertThat(newGame.getPlayers()).extracting(Player::getNickname)
+                .containsExactlyInAnyOrder("Host", "Guest1", "Guest2");
+    }
+
+    @Test
+    @Transactional
     void tvLobbyEmbedsAJoinQrCodeThatRendersAsAPng() throws Exception {
         String gameId = createGame("Host", 10);
 

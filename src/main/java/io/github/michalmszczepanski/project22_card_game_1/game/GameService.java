@@ -450,6 +450,36 @@ public class GameService {
         log.info("Gra {} zakończona przedwcześnie", game.getId());
     }
 
+    /**
+     * "Zagraj jeszcze raz" (README TODO) — admin-only, after FINISHED. Creates a fresh game with the
+     * same (still-active) players and packs, no re-typing the code. Returns the admin's own row in
+     * the new game, so the controller can drop them straight into it. Idempotent: a repeated click
+     * (e.g. a slow double-tap) reuses the already-created rematch instead of spawning another one —
+     * other players get there the same way, via {@link Player#getNextPlayerId()} once their own
+     * browser polls the finished game again.
+     */
+    public Player rematch(String gameId, String adminPlayerId) {
+        Game game = requireGame(gameId);
+        requireAdmin(game, adminPlayerId);
+        if (game.getStatus() != GameStatus.FINISHED) {
+            throw new InvalidGameActionException("Grę można powtórzyć tylko po jej zakończeniu.");
+        }
+
+        if (game.getNextGameId() == null) {
+            Game newGame = createGame(game.getActivePacks(), game.getTotalRounds());
+            for (Player oldPlayer : game.activePlayers()) {
+                Player newPlayer = join(newGame.getId(), oldPlayer.getNickname(), oldPlayer.getAppUserId());
+                oldPlayer.setNextPlayerId(newPlayer.getId());
+            }
+            newGame.setAdminPlayerId(game.findPlayer(adminPlayerId).orElseThrow().getNextPlayerId());
+            game.setNextGameId(newGame.getId());
+            log.info("Gra {}: zagrano jeszcze raz jako {}", gameId, newGame.getId());
+        }
+
+        String newPlayerId = game.findPlayer(adminPlayerId).orElseThrow().getNextPlayerId();
+        return requireGame(game.getNextGameId()).findPlayer(newPlayerId).orElseThrow();
+    }
+
     /** Explicit "Opuść grę" — the player clicked the button. */
     public void leave(String gameId, String playerId) {
         Game game = requireGame(gameId);

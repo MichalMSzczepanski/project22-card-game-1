@@ -125,6 +125,11 @@ public class Game {
     @Setter
     private String lastKickedPlayerId;
 
+    /** Set once an admin starts a rematch (README TODO „Zagraj jeszcze raz") — the new game's id. */
+    @Getter
+    @Setter
+    private String nextGameId;
+
     @Version
     private Long version;
 

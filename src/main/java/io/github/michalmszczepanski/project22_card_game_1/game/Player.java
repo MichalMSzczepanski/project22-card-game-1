@@ -67,6 +67,11 @@ public class Player {
     @Getter
     private boolean usedHandSwap = false;
 
+    /** Set once a rematch is created from this player's (finished) game — their own row in the new one. */
+    @Getter
+    @Setter
+    private String nextPlayerId;
+
     /** Bumped on every request this player's own browser makes, so a stale value means a closed tab. */
     @Getter
     @Setter

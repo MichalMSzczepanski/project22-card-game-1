@@ -10,6 +10,7 @@ import io.github.michalmszczepanski.project22_card_game_1.game.GameNotFoundExcep
 import io.github.michalmszczepanski.project22_card_game_1.game.GameProperties;
 import io.github.michalmszczepanski.project22_card_game_1.game.GameService;
 import io.github.michalmszczepanski.project22_card_game_1.game.InvalidGameActionException;
+import io.github.michalmszczepanski.project22_card_game_1.game.Player;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
@@ -51,6 +52,16 @@ public class GameController {
             if (playerId != null && playerId.equals(game.getLastKickedPlayerId())) {
                 return goHome(session, redirectAttributes, "Admin usunął Cię z gry.");
             }
+            // Admin started a rematch (POST /rematch) — carry this still-open tab straight into it,
+            // the same way the admin's own click already did, no re-typing the code.
+            if (playerId != null && game.getNextGameId() != null) {
+                String nextPlayerId = game.findPlayer(playerId).map(p -> p.getNextPlayerId()).orElse(null);
+                if (nextPlayerId != null) {
+                    session.setAttribute("playerId", nextPlayerId);
+                    session.setAttribute("gameId", game.getNextGameId());
+                    return "redirect:/games/" + game.getNextGameId();
+                }
+            }
             model.addAttribute("view", GameViewModel.of(game, playerId, gameProperties));
             return "game";
         } catch (GameNotFoundException e) {
@@ -65,6 +76,9 @@ public class GameController {
             gameService.checkTimeout(gameId);
             gameService.pruneDisconnectedPlayers(gameId);
             Game game = gameService.getGame(gameId);
+            if (game.getNextGameId() != null) {
+                return "redirect:/games/" + game.getNextGameId() + "/tv";
+            }
             model.addAttribute("view", GameViewModel.of(game, null, gameProperties));
             return "tv";
         } catch (GameNotFoundException e) {
@@ -169,6 +183,22 @@ public class GameController {
     public String end(@PathVariable String gameId, HttpSession session, RedirectAttributes redirectAttributes) {
         String playerId = requirePlayerId(session);
         return withErrorHandling(gameId, redirectAttributes, () -> gameService.endGame(gameId, playerId));
+    }
+
+    /** "Zagraj jeszcze raz" — admin-only. Drops the clicking admin straight into the new game. */
+    @PostMapping("/rematch")
+    public String rematch(@PathVariable String gameId, HttpSession session, RedirectAttributes redirectAttributes) {
+        String playerId = requirePlayerId(session);
+        try {
+            Player newPlayer = gameService.rematch(gameId, playerId);
+            session.setAttribute("playerId", newPlayer.getId());
+            session.setAttribute("gameId", newPlayer.getGame().getId());
+            return "redirect:/games/" + newPlayer.getGame().getId();
+        } catch (InvalidGameActionException e) {
+            log.debug("Gra {}: nie udało się zagrać jeszcze raz — {}", gameId, e.getMessage());
+            redirectAttributes.addFlashAttribute("error", e.getMessage());
+            return "redirect:/games/" + gameId;
+        }
     }
 
     @PostMapping("/kick")
