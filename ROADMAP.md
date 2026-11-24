@@ -19,7 +19,7 @@ Cel: grywalne w internecie, bezpieczne, bez kosztów-niespodzianek.
 - ⬜ Postgres + Flyway, sprzątanie porzuconych gier
 - ⬜ Rate limiting, limity zasobów
 - ⬜ Deployment: VPS + Cloudflare Tunnel
-- 🟨 Panel admina aplikacji — wersja minimalna: dashboard + gry na żywo zrobione; karty (czeka na Postgres) ⬜
+- 🟨 Panel admina aplikacji — wersja minimalna: dashboard + gry na żywo ✅; karty i pakiety ✅; zgłoszenia/moderacja/ustawienia serwisu ⬜
 
 ## v1.1 — więcej zabawy
 - 🟨 Ustawienia gry — liczba rund wybierana przy tworzeniu gry ✅; „do X punktów” i timeouty per-gra ⬜
@@ -32,7 +32,7 @@ Cel: grywalne w internecie, bezpieczne, bez kosztów-niespodzianek.
 ## v1.2 — jakość treści
 - ⬜ Zgłoś kartę + kolejka zgłoszeń w panelu admina aplikacji
 - ⬜ Statystyki kart (co wygrywa, co przegrywa)
-- ⬜ Zarządzanie kartami i pakietami z panelu (zamiast hardkodu w `CardSeeder`)
+- ✅ Zarządzanie kartami i pakietami z panelu (`/admin/cards`, CRUD + import tekstowy) — `CardSeeder` zostaje jako seed startowy
 
 ## v2 — freemium (po walidacji, patrz BIZNES.md)
 - ⬜ Forma prawna, regulamin, polityka prywatności, znak towarowy

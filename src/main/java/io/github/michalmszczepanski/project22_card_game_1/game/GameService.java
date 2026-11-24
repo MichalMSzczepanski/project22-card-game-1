@@ -409,7 +409,7 @@ public class GameService {
             return List.of();
         }
         List<Long> packIds = effectivePacks(game).stream().map(CardPack::getId).toList();
-        List<Card> candidates = cardRepository.findByTypeAndPack_IdIn(type, packIds);
+        List<Card> candidates = cardRepository.findByTypeAndEnabledTrueAndPack_IdIn(type, packIds);
         if (candidates.isEmpty()) {
             throw new InvalidGameActionException("Brak kart tego typu w wybranych pakietach.");
         }

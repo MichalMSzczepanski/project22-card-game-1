@@ -36,7 +36,9 @@ public class CardPack {
     private PackAudience audience;
 
     /** Null on both = always available. Used for limited-time seasonal packs. */
+    @Getter
     private LocalDate availableFrom;
+    @Getter
     private LocalDate availableUntil;
 
     public CardPack(String name, boolean free, BigDecimal pricePln, PackAudience audience) {
@@ -45,6 +47,17 @@ public class CardPack {
 
     public CardPack(String name, boolean free, BigDecimal pricePln, PackAudience audience,
                      LocalDate availableFrom, LocalDate availableUntil) {
+        this.name = name;
+        this.free = free;
+        this.pricePln = pricePln;
+        this.audience = audience;
+        this.availableFrom = availableFrom;
+        this.availableUntil = availableUntil;
+    }
+
+    /** Admin edit (README TODO "Karty i pakiety") — the pack keeps its id and its cards. */
+    public void update(String name, boolean free, BigDecimal pricePln, PackAudience audience,
+                        LocalDate availableFrom, LocalDate availableUntil) {
         this.name = name;
         this.free = free;
         this.pricePln = pricePln;
