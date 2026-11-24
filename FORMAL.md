@@ -5,6 +5,14 @@
 ## Decyzja
 **Etap 1: darmowe MVP, anonimowo, dla zabawy.** Etap 2 (freemium) dopiero po sprawdzeniu, że ludzie chcą grać.
 
+## ⚠️ Odrzucone na razie: granie o prawdziwe pieniądze (ryzyko hazardu)
+
+Pomysł: gracze wpłacają stawkę (np. 10 zł), pula rozkłada się na zwycięzców. **To prawdopodobnie gra losowa w rozumieniu polskiej Ustawy o grach hazardowych (2009)** — trzy elementy się zgadzają: stawka pieniężna + element przypadku (losowe rozdanie kart) + nagroda. Nie ma znaczenia, czy platforma bierze cokolwiek z puli dla siebie — liczy się samo **organizowanie** takiej gry dla nieznajomych graczy, co wymaga koncesji od Ministra Finansów. Prowadzenie bez koncesji grozi karami administracyjnymi i w niektórych przypadkach odpowiedzialnością karną.
+
+**Owijanie tego w wewnętrzną walutę (np. „Coiny" kupowane za PLN) nie rozwiązuje problemu automatycznie** — regulator patrzy przez taki wrapper na to, czy realne pieniądze wchodzą na początku i czy coś o realnej wartości (w tym: wymienialne z powrotem na pieniądze) wychodzi na końcu. Jeśli waluta jest wymienialna z powrotem na pieniądze/coś zbywalnego — to wciąż ten sam problem, tylko z dodatkową warstwą pośrednią, która *ułatwia* regulatorowi dowodzenie (wyraźna księga transferu wartości). Jeśli waluta jest **jednostronna, bez cash-outu, bez wartości rynkowej** (można ją tylko wydać w appce na coś bez wartości poza appką) — to realnie zmienia naturę rzeczy, ale też przestaje być tym samym pomysłem (gracze nie „wygrywają realnych pieniędzy", tylko odblokowują nagrody w appce — bliżej mikro-pakietów z `BIZNES.md`/`IDEAS.md` niż hazardu).
+
+**To wymaga dedykowanej konsultacji z prawnikiem specjalizującym się w prawie hazardowym** — inna, głębsza konsultacja niż ta zaplanowana przed etapem 2 (VAT/spółka/sprzedaż pakietów, patrz niżej). Nie projektować ani nie budować żadnej wersji tego (prawdziwe pieniądze czy waluta wewnętrzna z choćby cząstkowym cash-outem) bez tej konsultacji. Niniejsza notatka nie jest poradą prawną.
+
 ## Inne gry tego typu (np. Cards Against Humanity) — czego nie robimy
 - **Mechanika** (pytanie + karty-odpowiedzi + rotujący prowadzący) **nie jest chroniona** — wolno.
 - **Ich teksty kart** — nie używamy. Licencja CC BY-NC-SA 2.0 zabrania użycia komercyjnego, a planujemy freemium. **Wszystkie karty piszemy sami od pierwszego dnia.**
@@ -37,4 +45,4 @@
 ## Etap 2 — freemium (później)
 - Darmowe: baza + tryb rodzinny. Płatne: na start **2 zestawy tematyczne** (wybrane licznikiem).
 - Pakiet admina działa dla całego stołu.
-- Do przygotowania: forma prawna, regulamin, polityka prywatności (RODO), operator płatności, znak towarowy, konsultacja prawna.
+- Do przygotowania: forma prawna, regulamin, polityka prywatności (RODO), operator płatności (plan integracji: [`README.md`](README.md) sekcja 6 — merchant-of-record zdejmuje rozliczanie VAT, nie zwalnia z jawności spółki), znak towarowy, konsultacja prawna.

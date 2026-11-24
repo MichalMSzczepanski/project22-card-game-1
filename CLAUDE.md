@@ -11,6 +11,8 @@ Towarzyska gra karciana typu pytanie–odpowiedź: telefony graczy + wspólny ek
 | `FORMAL.md` | prawo, licencje, anonimowość, etapy (darmowe MVP → freemium) | karty, nazwa, wygląd, zakupy, dane osobowe |
 | `BIZNES.md` | zarabianie, walidacja, pakiety okolicznościowe | pakiety, płatności, metryki |
 | `ROADMAP.md` | wersje i funkcje ze statusem | planowanie; **aktualizuj status po skończeniu funkcji** |
+| `IDEAS.md` | brain-dump pomysłów (wszystkie kategorie) + research konkurencji, nieposegregowane do roadmapy | szukanie inspiracji, planowanie nowych funkcji |
+| `DEPLOY.md` | plan wdrożenia: VPS + Cloudflare Tunnel krok po kroku, rate limiting, decyzja o Dockerze, Postgres, sesja gracza | deployment, infrastruktura, bezpieczeństwo produkcyjne |
 | `CLAUDE.md` | ten plik | zawsze (wczytywany automatycznie) |
 
 Nowy plik `.md` w repo → dopisz go do tej tabeli.

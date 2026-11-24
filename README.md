@@ -159,7 +159,7 @@ Osobna część pod `/admin`, tylko dla właściciela serwisu. Dostęp: rola `AD
 - [ ] Zbierać minimum danych o graczach (nick); przy kontach i płatnościach — RODO (polityka prywatności).
 
 ### Płatności
-- [ ] Etap 2: prawdziwy operator płatności zamiast stubu (`PacksController.purchase`). W etapie 1 zakupy wyłączone.
+- [ ] Etap 2: prawdziwy operator płatności zamiast stubu (`PacksController.purchase`). W etapie 1 zakupy wyłączone. Specyfikacja: sekcja 6.
 
 ### Biznes i pakiety
 - Monetyzacja, pakiety okolicznościowe i pomysły biznesowe → [`BIZNES.md`](BIZNES.md). Plan funkcji w czasie → [`ROADMAP.md`](ROADMAP.md).
@@ -234,3 +234,23 @@ Uciekinier nie odzyskuje roli automatycznie. Jeśli wróci do gry, a admin jest 
 - Wyrzucony gracz **może wrócić** kodem do tej samej gry (nie pamiętamy wyrzuconych).
 - Admin **nie może** przekazać roli konkretnej osobie bez wychodzenia z gry — poza zakresem MVP.
 - Wyniki rundy bez admina **czekają** na przejęcie admina (brak automatycznego przejścia dalej).
+
+## 6. Planowana integracja (etap 2): operator płatności
+
+> Dziś `PacksController.purchase` to czysty stub — odblokowuje pakiet bez żadnej realnej płatności (`log.info("Zakup (symulowany)...")`), zgodnie z etapem 1 (`FORMAL.md`). Ta sekcja to plan na etap 2, nie coś do wdrożenia teraz.
+
+### Decyzja: hostowany checkout dostawcy + webhook, nie Shopify
+Shopify nie jest dobrym fitem — to platforma pod katalog produktów, a i tak trzeba by samemu napisać webhook + sprawdzanie entitlementu po stronie naszej appki (Shopify domyślnie tylko zmienia status zamówienia, nic nie odblokowuje automatycznie). Ta sama praca integracyjna, plus dodatkowy koszt i osobny katalog produktów równolegle z `CardPack`.
+
+Dwie realne opcje:
+- **Stripe Checkout** — my zostajemy sprzedawcą (merchant of record): sami rozliczamy VAT (Stripe Tax pomaga, odpowiedzialność jest nasza). Niższa opłata (~2.9% + 30¢/transakcję).
+- **Paddle** — **Paddle jest prawnie sprzedawcą**, sam rozlicza i odprowadza VAT, sam wystawia faktury klientom. Wyższa opłata (~5% + 50¢/transakcję), mniej papierkowej roboty księgowej dla nas. *(Lemon Squeezy — podobny model — przejęte przez Stripe w 2024, w trakcie łączenia ze „Stripe Managed Payments"; dziś to efektywnie dwie niezależne opcje, nie trzy.)*
+
+Merchant-of-record (Paddle) zdejmuje rozliczanie VAT, ale **nie zwalnia** z założenia jawnej spółki w etapie 2 (`FORMAL.md` jest jasne: przy sprzedaży anonimowość się kończy) — to mniej księgowości, nie mniej jawności. **Ostateczny wybór wymaga konsultacji prawnej/księgowej przed etapem 2**, zgodnie z notatką na górze `FORMAL.md`.
+
+### Jak to wpada w istniejący kod
+1. `PacksController.purchase` zamiast odblokowywać pakiet od razu, tworzy hostowaną sesję płatności (Stripe Checkout Session / Paddle Checkout) z metadanymi `appUserId` + `packId` i przekierowuje gracza tam — **karta nigdy nie trafia na nasz serwer** (PCI compliance po stronie dostawcy).
+2. Nowy endpoint `POST /webhooks/payments` — dostawca wywołuje go po udanej płatności; weryfikacja podpisu (HMAC, sekret z env var, nigdy w repo, patrz TODO „Deployment"). Dopiero wtedy `Purchase` dostaje status `COMPLETED` i pakiet się odblokowuje.
+3. Zgodne z już zaplanowanym deploymentem — webhook to zwykły ruch HTTPS na nasz publiczny hostname przez Cloudflare Tunnel, nie wymaga żadnego otwartego portu na VPS; żadnej zmiany w modelu „deny all inbound" (TODO „Deployment").
+4. Refundy/chargebacki też przychodzą jako webhooki — obsłużyć jako unieważnienie `Purchase`.
+5. `Purchase` nie powinien nigdy przechowywać danych karty — tylko ID transakcji dostawcy, status, `packId`, `appUserId`.

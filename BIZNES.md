@@ -47,3 +47,4 @@ Zestawy:
 - Ceny zestawów (nie publikujemy przed etapem 2).
 - Sprzedaż pojedynczo vs. pakiety (np. „Wesele: 3 pokolenia”), zestawy sezonowe vs. całoroczne.
 - Jednorazowy zakup vs. subskrypcja „wszystkie zestawy” — na start jednorazowy (prościej).
+- Operator płatności (Stripe vs Paddle) i integracja z `PacksController.purchase` → [`README.md`](README.md) sekcja 6.
