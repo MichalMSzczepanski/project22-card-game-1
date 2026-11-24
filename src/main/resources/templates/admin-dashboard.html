@@ -18,6 +18,7 @@
     <div class="d-flex gap-2">
         <a href="/admin/cards" class="btn btn-sm btn-outline-secondary">Karty i pakiety</a>
         <a href="/admin/reports" class="btn btn-sm btn-outline-secondary">Zgłoszone karty</a>
+        <a href="/admin/proposals" class="btn btn-sm btn-outline-secondary">Propozycje kart</a>
         <a href="/admin/settings" class="btn btn-sm btn-outline-secondary">Ustawienia</a>
         <form method="post" th:action="@{/admin/logout}">
             <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>

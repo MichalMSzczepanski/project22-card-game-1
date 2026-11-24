@@ -15,6 +15,7 @@
 <nav class="d-flex justify-content-end align-items-center flex-wrap gap-1 small mb-2">
     <span th:if="${loggedIn}">
         Zalogowany jako <strong th:text="${username}"></strong>
+        &middot; <a th:href="@{/me/proposals}">Moje propozycje kart</a>
         &middot;
         <form method="post" th:action="@{/logout}" class="d-inline">
             <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>

@@ -33,6 +33,8 @@ Cel: grywalne w internecie, bezpieczne, bez kosztów-niespodzianek.
 - ✅ Zgłoś kartę + kolejka zgłoszeń w panelu admina aplikacji (`/admin/reports`)
 - ⬜ Statystyki kart (co wygrywa, co przegrywa)
 - ✅ Zarządzanie kartami i pakietami z panelu (`/admin/cards`, CRUD + import tekstowy) — `CardSeeder` zostaje jako seed startowy
+- ✅ Propozycje kart od graczy (`/me/proposals` + kolejka `/admin/proposals`) — wymagało kont, patrz v2 niżej
+- ⬜ Plusiki i ranking kart (gracze oceniają karty z puli „Od graczy”)
 
 ## v2 — freemium (po walidacji, patrz BIZNES.md)
 - ⚠️ Forma prawna, regulamin, **polityka prywatności** (teraz zaległość, nie "do zrobienia" — konta już zbierają dane, patrz FORMAL.md), znak towarowy

@@ -24,10 +24,9 @@ import org.springframework.security.web.SecurityFilterChain;
  *       admina aplikacji"). A completely separate identity from players: its own
  *       {@link OperatorUserDetailsService}/{@code Operator} table, own {@link DaoAuthenticationProvider}
  *       scoped to just this chain — never mixed with the player-account machinery below.</li>
- *   <li>{@link #appFilterChain} — everything else. {@code permitAll()} on every route (gameplay
- *       stays guest-friendly, README invariant) plus optional player login/registration — accounts
- *       are now back (README TODO "Propozycje kart od graczy"), but nothing is gated behind login
- *       yet, so authorization stays wide open until something actually needs it.</li>
+ *   <li>{@link #appFilterChain} — everything else. Gameplay stays guest-friendly (README
+ *       invariant, {@code permitAll()}); only {@code /me/**} ("Propozycje kart od graczy") needs
+ *       an actual player account.</li>
  * </ul>
  */
 @Configuration
@@ -90,7 +89,11 @@ public class SecurityConfig {
 
         http
                 .authenticationProvider(playerAuthProvider)
-                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
+                .authorizeHttpRequests(auth -> auth
+                        // "Propozycje kart od graczy" (README TODO) — the only player-side route
+                        // that actually requires login; everything else (gameplay) stays guest-friendly.
+                        .requestMatchers("/me/**").authenticated()
+                        .anyRequest().permitAll())
                 .formLogin(form -> form
                         .loginPage("/login")
                         .defaultSuccessUrl("/", false)

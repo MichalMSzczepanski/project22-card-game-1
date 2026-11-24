@@ -17,6 +17,9 @@ import java.util.List;
 @RequiredArgsConstructor
 public class CardSeeder implements ApplicationRunner {
 
+    /** Destination pack for accepted player proposals (README TODO "Propozycje kart od graczy"). */
+    public static final String USER_PROPOSED_PACK_NAME = "Od graczy";
+
     private static final List<String> QUESTION_CARDS = List.of(
             "Najgorszy prezent, jaki można dostać na urodziny: ___",
             "Co zepsuło imprezę w ostatniej chwili? ___",
@@ -504,5 +507,8 @@ public class CardSeeder implements ApplicationRunner {
 
         NYE_QUESTION_CARDS.forEach(text -> cardRepository.save(new Card(text, CardType.QUESTION, nyePack)));
         NYE_ANSWER_CARDS.forEach(text -> cardRepository.save(new Card(text, CardType.ANSWER, nyePack)));
+
+        // Starts empty — filled as CardProposalService.approve() accepts player proposals.
+        cardPackRepository.save(new CardPack(USER_PROPOSED_PACK_NAME, true, BigDecimal.ZERO, PackAudience.FAMILY));
     }
 }
