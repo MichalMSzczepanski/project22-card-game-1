@@ -94,7 +94,7 @@ a potem dla każdej: poszerz → zaktualizuj dane → zwęż, tak jak wyżej.
 - [x] Wyłączyć zakupy (`PacksController.purchase`); płatne pakiety jako „Tematyczne zestawy — wkrótce” (bez dat i cen).
 - [ ] Przycisk „Chcę ten zestaw!” przy każdym zestawie + licznik kliknięć (bez danych osobowych, ograniczenie wielokrotnego klikania np. per sesja).
 - [x] Wyłączyć rejestrację / logowanie / OAuth i historię wyników — same nicki. `AuthController`/`StatsController` usunięte, `/register`/`/login`/`/stats`/`/oauth2/**` i `POST /packs/{id}/purchase` zwracają 404 (`AccountsDisabledE2ETest`). Encje/serwisy kont (`user`/`security`) zostają w repo nieużywane, odłączone od `SecurityConfig` — gotowe na etap 2 (ROADMAP.md), nie usunięte.
-- [ ] Strona „O grze”: darmowa, nie zbiera danych osobowych, treści 18+ poza trybem rodzinnym.
+- [x] Strona „O grze” (`/o-grze`, `AboutController`): darmowa, nie zbiera danych osobowych, treści 18+ poza trybem rodzinnym. Link z `/`.
 - [ ] Wszystkie karty własne — przejrzeć `CardSeeder` pod kątem tekstów z innych gier.
 - [ ] Własna kolorystyka i font kart (nie czarno-białe w stylu CAH).
 
