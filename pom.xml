@@ -71,6 +71,14 @@
 			<artifactId>spring-session-jdbc</artifactId>
 		</dependency>
 
+		<!-- In-memory per-IP rate limiting (DEPLOY.md § 3) — not Redis, one app instance
+		     on one VPS doesn't need a distributed counter. -->
+		<dependency>
+			<groupId>com.bucket4j</groupId>
+			<artifactId>bucket4j-core</artifactId>
+			<version>8.10.1</version>
+		</dependency>
+
 		<dependency>
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>

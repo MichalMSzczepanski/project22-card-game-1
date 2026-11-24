@@ -1,3 +1,10 @@
+# Reads X-Forwarded-*/Forwarded from the reverse proxy (Cloudflare Tunnel, see DEPLOY.md
+# § 2) so request.getRemoteAddr() is the real client IP (needed for rate limiting below) and
+# cookies correctly get the Secure flag. Harmless with no proxy in front (dev/tests): no such
+# headers arrive, so behavior is unchanged.
+server:
+  forward-headers-strategy: framework
+
 spring:
   application:
     name: project22-card-game-1
@@ -96,3 +103,10 @@ user:
   min-username-length: 3
   max-username-length: 30
   min-password-length: 8
+
+# Per-IP rate limit on POST /games and POST /games/join — see RateLimitFilter.
+# capacity tokens in the bucket, refilled by refill-tokens every refill-period-seconds.
+rate-limit:
+  capacity: 10
+  refill-tokens: 10
+  refill-period-seconds: 60
