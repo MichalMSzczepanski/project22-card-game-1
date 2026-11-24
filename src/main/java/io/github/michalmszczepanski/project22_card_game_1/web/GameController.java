@@ -138,6 +138,12 @@ public class GameController {
                 () -> gameService.kickPlayer(gameId, adminPlayerId, targetPlayerId));
     }
 
+    @PostMapping("/skip-round")
+    public String skipRound(@PathVariable String gameId, HttpSession session, RedirectAttributes redirectAttributes) {
+        String playerId = requirePlayerId(session);
+        return withErrorHandling(gameId, redirectAttributes, () -> gameService.forceRevealRound(gameId, playerId));
+    }
+
     @PostMapping("/transfer-admin")
     public String transferAdmin(@PathVariable String gameId,
                                  @RequestParam String targetPlayerId,

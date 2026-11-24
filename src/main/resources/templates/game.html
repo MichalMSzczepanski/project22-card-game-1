@@ -62,6 +62,14 @@
             <span th:text="${view.familyMode()} ? 'Tryb rodzinny: WŁĄCZONY' : 'Włącz tryb rodzinny (babcia przyszła 👵)'"></span>
         </button>
     </form>
+    <form method="post" th:if="${view.isAdmin() and (view.status().name() == 'ANSWERING' or view.status().name() == 'RANKING')}"
+          th:action="@{/games/{id}/skip-round(id=${view.gameId()})}"
+          onsubmit="return confirm('Pominąć tę rundę i odkryć wyniki teraz?');">
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+        <button type="submit" class="btn btn-sm btn-outline-warning">
+            <i class="bi bi-skip-forward"></i> Pomiń rundę
+        </button>
+    </form>
     <form method="post" th:if="${view.isAdmin()}" th:action="@{/games/{id}/end(id=${view.gameId()})}"
           onsubmit="return confirm('Zakończyć grę dla wszystkich?');">
         <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>

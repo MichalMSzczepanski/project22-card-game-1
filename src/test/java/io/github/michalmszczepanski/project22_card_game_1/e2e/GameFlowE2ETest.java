@@ -329,6 +329,22 @@ class GameFlowE2ETest {
         assertThat(afterTakeOver).contains("/games/" + gameId + "/end"); // Guest1 now sees admin-only buttons
     }
 
+    @Test
+    @Transactional
+    void adminCanSkipAStuckRoundOverRealHttp() throws Exception {
+        String gameId = createGame("Host", 10);
+        joinGame("Guest1", gameId);
+        joinGame("Guest2", gameId);
+        startGame("Host", gameId);
+
+        String adminView = getAsPlayer("Host", "/games/" + gameId).getResponse().getContentAsString();
+        assertThat(adminView).contains("/games/" + gameId + "/skip-round");
+
+        MvcResult skipped = postAsPlayer("Host", "/games/" + gameId, "/games/" + gameId + "/skip-round", Map.of());
+        assertThat(skipped.getResponse().getStatus()).isEqualTo(302);
+        assertThat(gameRepository.findById(gameId).orElseThrow().getStatus()).isEqualTo(GameStatus.REVEALED);
+    }
+
     /** Finds a player's id by nickname straight from the DB — the test only knows nicknames, not ids. */
     private String playerIdOf(String nickname, String gameId) {
         return gameRepository.findById(gameId).orElseThrow().getPlayers().stream()

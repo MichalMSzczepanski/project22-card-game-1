@@ -522,6 +522,37 @@ class GameServiceTest {
     }
 
     @Test
+    void adminCanSkipAStuckRoundAndRevealItImmediately() {
+        Game game = createGame(freePacks());
+        Player admin = gameService.join(game.getId(), "Ala");
+        Player other = gameService.join(game.getId(), "Bartek");
+        gameService.join(game.getId(), "Celina");
+        startGame(game);
+
+        assertThatThrownBy(() -> gameService.forceRevealRound(game.getId(), other.getId()))
+                .isInstanceOf(InvalidGameActionException.class)
+                .hasMessage("Tylko admin może to zrobić.");
+
+        // Nobody has answered yet (leader included) — admin skips anyway, round reveals with 0 points.
+        gameService.forceRevealRound(game.getId(), admin.getId());
+        assertThat(game.getStatus()).isEqualTo(GameStatus.REVEALED);
+        assertThat(game.getCurrentRound().getRankings()).isEmpty();
+    }
+
+    @Test
+    void cannotSkipARoundWhenThereIsNoneInProgress() {
+        Game game = createGame(freePacks());
+        Player admin = gameService.join(game.getId(), "Ala");
+        gameService.join(game.getId(), "Bartek");
+        gameService.join(game.getId(), "Celina");
+        // Still LOBBY — no current round at all.
+
+        assertThatThrownBy(() -> gameService.forceRevealRound(game.getId(), admin.getId()))
+                .isInstanceOf(InvalidGameActionException.class)
+                .hasMessage("Nie ma teraz rundy do pominięcia.");
+    }
+
+    @Test
     void afterLeaderWindowClosesOnlyAdminOrTheLeaderCanAdvanceTheRound() {
         Game game = createGame(freePacks());
         Player admin = gameService.join(game.getId(), "Ala");

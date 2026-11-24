@@ -190,6 +190,23 @@ public class GameService {
     }
 
     /**
+     * Admin-only (README TODO "Prowadzący znika w trakcie rundy"): reveals the round right now
+     * with whatever submissions/rankings exist, instead of waiting out the answer/ranking
+     * timeout — same end state as a timeout firing, just on the admin's own call. Covers a
+     * leader who's gone quiet without making everyone else wait ~45s+ for the normal timeout.
+     */
+    public void forceRevealRound(String gameId, String playerId) {
+        Game game = requireGame(gameId);
+        requireAdmin(game, playerId);
+        Round round = game.getCurrentRound();
+        if (round == null || (game.getStatus() != GameStatus.ANSWERING && game.getStatus() != GameStatus.RANKING)) {
+            throw new InvalidGameActionException("Nie ma teraz rundy do pominięcia.");
+        }
+        reveal(game, round);
+        log.info("Gra {}: admin pominął rundę {}", gameId, round.getNumber());
+    }
+
+    /**
      * Keeps a stuck round from blocking the party forever. Called opportunistically
      * whenever anyone's browser polls the game (no background scheduler needed):
      * past the answering deadline, missing players get a random card auto-played;
