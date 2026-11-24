@@ -125,6 +125,28 @@ class AuthE2ETest {
 
     @Test
     @Transactional
+    void deletingTheAccountOnTheRealPageLogsOutAndRemovesTheAccount() throws Exception {
+        register("gracz8", "sekretne123");
+        login("gracz8", "sekretne123");
+
+        String accountPage = getWithCookie("/me/account").getResponse().getContentAsString();
+        assertThat(accountPage).contains("gracz8");
+        String csrfToken = extractCsrfToken(accountPage);
+
+        mockMvc.perform(postWithCookie("/me/account/delete").param("_csrf", csrfToken))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/"));
+
+        assertThat(appUserRepository.existsByUsername("gracz8")).isFalse();
+
+        // The deleted account's own session is logged out — /me/account bounces to login again.
+        mockMvc.perform(get("/me/account").cookie(sessionCookie))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/login"));
+    }
+
+    @Test
+    @Transactional
     void loggingOutReturnsToTheAnonymousHomePage() throws Exception {
         register("gracz7", "sekretne123");
         login("gracz7", "sekretne123");

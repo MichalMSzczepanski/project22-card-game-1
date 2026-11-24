@@ -160,7 +160,7 @@ Osobna część pod `/admin`, tylko dla właściciela serwisu. Dostęp: rola `OP
 ### Anonimowość
 - [ ] Commity z adresu noreply GitHuba (`git config user.email <id>+<login>@users.noreply.github.com`), ewentualnie repo prywatne.
 - [ ] Brak danych osobowych w stopce/stronie; osobny alias e-mail do kontaktu; domena z ukrytym WHOIS.
-- [ ] Zbierać minimum danych o graczach (nick); przy kontach i płatnościach — RODO (polityka prywatności).
+- [x] Zbierać minimum danych o graczach (nick bez konta; login+hash hasła przy koncie). RODO: `/polityka-prywatnosci` (`InfoController`) — opisuje zakres danych, brak udostępniania, i prawo do usunięcia przez `/me/account` (`UserService.deleteAccount`, kasuje konto + propozycje kart + historię wyników). Płatności wciąż czekają na etap 2 (FORMAL.md) — polityka będzie wymagać aktualizacji wtedy.
 
 ### Płatności
 - [ ] Etap 2: prawdziwy operator płatności zamiast stubu (`PacksController.purchase`). W etapie 1 zakupy wyłączone. Specyfikacja: sekcja 6.

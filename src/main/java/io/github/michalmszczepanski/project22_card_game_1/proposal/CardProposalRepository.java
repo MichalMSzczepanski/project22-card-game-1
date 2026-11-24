@@ -17,4 +17,7 @@ public interface CardProposalRepository extends JpaRepository<CardProposal, Long
 
     /** Daily anti-spam cap. */
     long countByProposerAndCreatedAtAfter(AppUser proposer, Instant after);
+
+    /** "Prawo do usunięcia" (UserService.deleteAccount) — the proposals are this user's own data. */
+    void deleteByProposer(AppUser proposer);
 }

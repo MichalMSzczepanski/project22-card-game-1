@@ -1,5 +1,10 @@
 package io.github.michalmszczepanski.project22_card_game_1.user;
 
+import io.github.michalmszczepanski.project22_card_game_1.card.CardType;
+import io.github.michalmszczepanski.project22_card_game_1.proposal.CardProposalRepository;
+import io.github.michalmszczepanski.project22_card_game_1.proposal.CardProposalService;
+import io.github.michalmszczepanski.project22_card_game_1.stats.GameScoreRecord;
+import io.github.michalmszczepanski.project22_card_game_1.stats.GameScoreRecordRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -21,6 +26,15 @@ class UserServiceTest {
 
     @Autowired
     private UserProperties userProperties;
+
+    @Autowired
+    private CardProposalRepository cardProposalRepository;
+
+    @Autowired
+    private CardProposalService cardProposalService;
+
+    @Autowired
+    private GameScoreRecordRepository gameScoreRecordRepository;
 
     @Test
     void registersALocalAccountWithAHashedPassword() {
@@ -65,5 +79,21 @@ class UserServiceTest {
     void rejectsANullPassword() {
         assertThatThrownBy(() -> userService.register("gracz", null))
                 .isInstanceOf(InvalidRegistrationException.class);
+    }
+
+    @Test
+    void deletingAnAccountRemovesItAndItsOwnData() {
+        userService.register("usuwany", "poprawneHaslo123");
+        AppUser user = appUserRepository.findByUsername("usuwany").orElseThrow();
+
+        cardProposalService.propose(user, "Propozycja do usunięcia", CardType.ANSWER);
+        gameScoreRecordRepository.save(new GameScoreRecord(user, "ABCDE", 7, true));
+
+        Long userId = user.getId();
+        userService.deleteAccount(user);
+
+        assertThat(appUserRepository.findById(userId)).isEmpty();
+        assertThat(cardProposalRepository.findByProposerOrderByCreatedAtDesc(user)).isEmpty();
+        assertThat(gameScoreRecordRepository.findByUserOrderByPlayedAtDesc(user)).isEmpty();
     }
 }

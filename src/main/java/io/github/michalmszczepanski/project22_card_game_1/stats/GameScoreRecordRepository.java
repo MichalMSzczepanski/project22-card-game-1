@@ -8,4 +8,7 @@ import java.util.List;
 public interface GameScoreRecordRepository extends JpaRepository<GameScoreRecord, Long> {
 
     List<GameScoreRecord> findByUserOrderByPlayedAtDesc(AppUser user);
+
+    /** "Prawo do usunięcia" (UserService.deleteAccount) — this user's own score history. */
+    void deleteByUser(AppUser user);
 }

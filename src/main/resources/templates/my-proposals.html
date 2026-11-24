@@ -14,7 +14,10 @@
 
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h1 class="h4 mb-0">Moje propozycje kart</h1>
-    <a href="/">&larr; Wróć do gry</a>
+    <div>
+        <a th:href="@{/me/account}">Moje konto</a> &middot;
+        <a href="/">&larr; Wróć do gry</a>
+    </div>
 </div>
 
 <div class="alert alert-danger" th:if="${error}" th:text="${error}"></div>

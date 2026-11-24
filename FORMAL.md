@@ -42,13 +42,14 @@ Pomysł: gracze wpłacają stawkę (np. 10 zł), pula rozkłada się na zwycięz
 - Gra bez konta zostaje — same nicki, grywalne anonimowo.
 - Krótka strona „O grze”: gra jest darmowa, nie zbiera danych osobowych (poza kontem, patrz niżej), treści 18+ (poza trybem rodzinnym).
 
-### ⚠️ Konta gracza wróciły przed etapem 2 — RODO/polityka prywatności są teraz zaległe, nie „później”
-Login/logowanie (`AuthController`, `AppUser`) zostały odblokowane wcześniej niż planowano (README TODO „Propozycje kart od graczy” — funkcja wymaga trwałej tożsamości gracza). To **łamie** założenie Etapu 1 wyżej („bez kont → minimalne obowiązki RODO”): konto to login + hash hasła (i opcjonalnie e-mail przez OAuth) = dane osobowe, zbierane już teraz, nie w nieokreślonej przyszłości.
-- **Polityka prywatności** — z listy „Do przygotowania” (Etap 2) robi się zaległość already in production, nie coś do zrobienia przed uruchomieniem sprzedaży. Dopisać do strony „O grze” i linku w `register.html`/`login.html`, zanim ruszy prawdziwy ruch.
-- Zakupy/płatności, znak towarowy, forma prawna — **nadal** czekają na etap 2 (sprzedaż), tego konta sam fakt nie zmienia.
-- Niniejsza notatka nie jest poradą prawną — jeśli appka ma realny ruch, konsultacja prawnicza przed, nie po.
+### Konta gracza wróciły przed etapem 2 — polityka prywatności nadrobiona
+Login/logowanie (`AuthController`, `AppUser`) zostały odblokowane wcześniej niż planowano (README TODO „Propozycje kart od graczy” — funkcja wymaga trwałej tożsamości gracza). To **łamie** założenie Etapu 1 wyżej („bez kont → minimalne obowiązki RODO”): konto to login + hash hasła (i opcjonalnie e-mail przez OAuth) = dane osobowe.
+- ✅ **Polityka prywatności** — `/polityka-prywatnosci` (`InfoController`), linkowana z `/`, `register.html`, `o-grze.html`, `my-account.html`. Opisuje realny stan: co zbieramy (login+hash hasła, treść propozycji kart), komu udostępniamy (nikomu), jak długo (dziś: do restartu serwera — H2 `create-drop`), i **prawo do usunięcia** — zrealizowane jako samoobsługa: `/me/account` → `UserService.deleteAccount` usuwa konto, propozycje kart i historię wyników (zaakceptowane karty zostają w grze jako anonimowa treść).
+- Brak jeszcze publicznego kontaktu (etap anonimowego MVP) — polityka to otwarcie mówi, zamiast obiecywać kanał, którego nie ma.
+- Zakupy/płatności, znak towarowy, forma prawna, regulamin — **nadal** czekają na etap 2 (sprzedaż), tego konta sam fakt nie zmienia.
+- Niniejsza notatka (i polityka prywatności) nie są poradą prawną — jeśli appka ma realny ruch, konsultacja prawnicza przed, nie po.
 
 ## Etap 2 — freemium (później)
 - Darmowe: baza + tryb rodzinny. Płatne: na start **2 zestawy tematyczne** (wybrane licznikiem).
 - Pakiet admina działa dla całego stołu.
-- Do przygotowania: forma prawna, regulamin, polityka prywatności (RODO), operator płatności (plan integracji: [`README.md`](README.md) sekcja 6 — merchant-of-record zdejmuje rozliczanie VAT, nie zwalnia z jawności spółki), znak towarowy, konsultacja prawna.
+- Do przygotowania: forma prawna, regulamin, operator płatności (plan integracji: [`README.md`](README.md) sekcja 6 — merchant-of-record zdejmuje rozliczanie VAT, nie zwalnia z jawności spółki), znak towarowy, konsultacja prawna. Polityka prywatności (RODO) — ✅ zrobiona wcześniej, patrz wyżej (trzeba ją tylko zaktualizować, gdy pojawi się realny kontakt/firma).

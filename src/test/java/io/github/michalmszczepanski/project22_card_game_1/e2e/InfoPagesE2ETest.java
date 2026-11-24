@@ -47,4 +47,20 @@ class InfoPagesE2ETest {
                 .andExpect(content().string(containsString("/o-grze")))
                 .andExpect(content().string(containsString("/jak-grac")));
     }
+
+    @Test
+    void privacyPolicyPageExplainsAccountDataAndTheRightToDeleteIt() throws Exception {
+        mockMvc.perform(get("/polityka-prywatnosci"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("/me/account")))
+                .andExpect(content().string(containsString("hasło")))
+                .andExpect(content().string(containsString("usun")));
+    }
+
+    @Test
+    void homePageLinksToThePrivacyPolicy() throws Exception {
+        mockMvc.perform(get("/"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("/polityka-prywatnosci")));
+    }
 }

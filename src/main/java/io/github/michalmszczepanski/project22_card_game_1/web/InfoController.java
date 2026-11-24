@@ -16,4 +16,9 @@ public class InfoController {
     public String howToPlay() {
         return "jak-grac";
     }
+
+    @GetMapping("/polityka-prywatnosci")
+    public String privacyPolicy() {
+        return "polityka-prywatnosci";
+    }
 }

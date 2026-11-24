@@ -37,7 +37,7 @@ Cel: grywalne w internecie, bezpieczne, bez kosztów-niespodzianek.
 - ⬜ Plusiki i ranking kart (gracze oceniają karty z puli „Od graczy”)
 
 ## v2 — freemium (po walidacji, patrz BIZNES.md)
-- ⚠️ Forma prawna, regulamin, **polityka prywatności** (teraz zaległość, nie "do zrobienia" — konta już zbierają dane, patrz FORMAL.md), znak towarowy
+- 🟨 Forma prawna, regulamin, znak towarowy ⬜; **polityka prywatności** ✅ (`/polityka-prywatnosci` + `/me/account` — zrobiona wcześniej niż planowano, patrz FORMAL.md)
 - 🟨 Konta (wraca logowanie) ✅ (wcześniej niż planowano, README „Propozycje kart od graczy”) + operator płatności ⬜
 - ⬜ 2 pierwsze zestawy tematyczne
 - ⬜ Pakiet admina działa dla całego stołu

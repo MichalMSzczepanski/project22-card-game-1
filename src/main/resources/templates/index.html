@@ -16,6 +16,7 @@
     <span th:if="${loggedIn}">
         Zalogowany jako <strong th:text="${username}"></strong>
         &middot; <a th:href="@{/me/proposals}">Moje propozycje kart</a>
+        &middot; <a th:href="@{/me/account}">Moje konto</a>
         &middot;
         <form method="post" th:action="@{/logout}" class="d-inline">
             <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
@@ -27,6 +28,7 @@
         <a th:href="@{/login}">Zaloguj</a> / <a th:href="@{/register}">Zarejestruj</a> &middot;
     </span>
     <a th:href="@{/jak-grac}">Jak grać</a> &middot; <a th:href="@{/packs}">Pakiety</a> &middot; <a th:href="@{/o-grze}">O grze</a>
+    &middot; <a th:href="@{/polityka-prywatnosci}">Prywatność</a>
 </nav>
 
 <h1 class="text-center mb-1">🃏 Karciana Gra</h1>
