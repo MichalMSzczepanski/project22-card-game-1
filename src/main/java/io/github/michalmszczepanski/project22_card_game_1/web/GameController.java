@@ -1,13 +1,21 @@
 package io.github.michalmszczepanski.project22_card_game_1.web;
 
+import com.google.zxing.BarcodeFormat;
+import com.google.zxing.WriterException;
+import com.google.zxing.client.j2se.MatrixToImageWriter;
+import com.google.zxing.common.BitMatrix;
+import com.google.zxing.qrcode.QRCodeWriter;
 import io.github.michalmszczepanski.project22_card_game_1.game.Game;
 import io.github.michalmszczepanski.project22_card_game_1.game.GameNotFoundException;
 import io.github.michalmszczepanski.project22_card_game_1.game.GameProperties;
 import io.github.michalmszczepanski.project22_card_game_1.game.GameService;
 import io.github.michalmszczepanski.project22_card_game_1.game.InvalidGameActionException;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -17,6 +25,10 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 
 @Controller
 @RequestMapping("/games/{gameId}")
@@ -58,6 +70,21 @@ public class GameController {
         } catch (GameNotFoundException e) {
             return goHome(null, redirectAttributes, "Gra zakończyła się — wszyscy wyszli.");
         }
+    }
+
+    /** QR kod kodujący link do dołączenia (`/?code=...`) — do wyświetlenia na ekranie TV w lobby. */
+    @GetMapping(value = "/qr.png", produces = MediaType.IMAGE_PNG_VALUE)
+    public ResponseEntity<byte[]> qrCode(@PathVariable String gameId, HttpServletRequest request)
+            throws WriterException, IOException {
+        String joinUrl = ServletUriComponentsBuilder.fromContextPath(request)
+                .path("/")
+                .queryParam("code", gameId)
+                .build()
+                .toUriString();
+        BitMatrix matrix = new QRCodeWriter().encode(joinUrl, BarcodeFormat.QR_CODE, 300, 300);
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        MatrixToImageWriter.writeToStream(matrix, "PNG", out);
+        return ResponseEntity.ok().contentType(MediaType.IMAGE_PNG).body(out.toByteArray());
     }
 
     @PostMapping("/leave")

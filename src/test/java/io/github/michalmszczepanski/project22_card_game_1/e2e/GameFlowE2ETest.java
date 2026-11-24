@@ -345,6 +345,24 @@ class GameFlowE2ETest {
         assertThat(gameRepository.findById(gameId).orElseThrow().getStatus()).isEqualTo(GameStatus.REVEALED);
     }
 
+    @Test
+    @Transactional
+    void tvLobbyEmbedsAJoinQrCodeThatRendersAsAPng() throws Exception {
+        String gameId = createGame("Host", 10);
+
+        String tv = mockMvc.perform(get("/games/" + gameId + "/tv")).andReturn().getResponse().getContentAsString();
+        assertThat(tv).contains("/games/" + gameId + "/qr.png");
+
+        MvcResult qr = mockMvc.perform(get("/games/" + gameId + "/qr.png")).andReturn();
+        assertThat(qr.getResponse().getStatus()).isEqualTo(200);
+        assertThat(qr.getResponse().getContentType()).isEqualTo("image/png");
+        byte[] png = qr.getResponse().getContentAsByteArray();
+        assertThat(png[0]).isEqualTo((byte) 0x89);
+        assertThat(png[1]).isEqualTo((byte) 'P');
+        assertThat(png[2]).isEqualTo((byte) 'N');
+        assertThat(png[3]).isEqualTo((byte) 'G');
+    }
+
     /** Finds a player's id by nickname straight from the DB — the test only knows nicknames, not ids. */
     private String playerIdOf(String nickname, String gameId) {
         return gameRepository.findById(gameId).orElseThrow().getPlayers().stream()
