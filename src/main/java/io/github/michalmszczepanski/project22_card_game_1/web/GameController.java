@@ -138,6 +138,16 @@ public class GameController {
                 () -> gameService.kickPlayer(gameId, adminPlayerId, targetPlayerId));
     }
 
+    @PostMapping("/transfer-admin")
+    public String transferAdmin(@PathVariable String gameId,
+                                 @RequestParam String targetPlayerId,
+                                 HttpSession session,
+                                 RedirectAttributes redirectAttributes) {
+        String adminPlayerId = requirePlayerId(session);
+        return withErrorHandling(gameId, redirectAttributes,
+                () -> gameService.transferAdmin(gameId, adminPlayerId, targetPlayerId));
+    }
+
     @PostMapping("/take-over-admin")
     public String takeOverAdmin(@PathVariable String gameId, HttpSession session, RedirectAttributes redirectAttributes) {
         String playerId = requirePlayerId(session);

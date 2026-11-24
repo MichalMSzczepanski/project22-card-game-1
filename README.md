@@ -106,7 +106,7 @@ a potem dla każdej: poszerz → zaktualizuj dane → zwęż, tak jak wyżej.
   - [x] Nowa akcja „Wyrzuć gracza” (`GameService.kickPlayer`, `POST /games/{id}/kick`) — wyrzucony może wrócić kodem (nie pamiętamy wyrzuconych, jak zapisano w Decyzjach niżej).
   - [x] Gra bez admina + przycisk „Przejmij admina” (`GameService.takeOverAdmin`, `POST /games/{id}/take-over-admin`, kto pierwszy, ten admin) — działa tak samo w lobby i w trakcie gry.
   - [x] TV pokazuje aktualnego admina / „Brak admina” (`tv.html`).
-  - [ ] Później (poza MVP): dobrowolne przekazanie roli admina konkretnej osobie.
+  - [x] Dobrowolne przekazanie roli admina konkretnej osobie bez wychodzenia z gry (`GameService.transferAdmin`, `POST /games/{id}/transfer-admin`) — wcześniej poza zakresem MVP, teraz zrobione.
 - [ ] **Do 10 graczy** (+ prowadzący) — podnieść `Game.MAX_PLAYERS`; sprawdzić, czy talia/pakiety starczą na 20 rund przy pełnym stole (`HAND_SIZE` × gracze + dobieranie).
 - [ ] Gracz dołączający w trakcie gry wchodzi od następnej rundy.
 - [ ] Prowadzący znika w trakcie rundy → po timeoucie lub decyzją ownera runda pominięta, prowadzenie przechodzi dalej.
@@ -233,7 +233,7 @@ Uciekinier nie odzyskuje roli automatycznie. Jeśli wróci do gry, a admin jest 
 
 ### Decyzje (MVP)
 - Wyrzucony gracz **może wrócić** kodem do tej samej gry (nie pamiętamy wyrzuconych).
-- Admin **nie może** przekazać roli konkretnej osobie bez wychodzenia z gry — poza zakresem MVP.
+- Admin **może** przekazać rolę konkretnej osobie bez wychodzenia z gry (`GameService.transferAdmin`) — zmiana względem pierwotnego MVP.
 - Wyniki rundy bez admina **czekają** na przejęcie admina (brak automatycznego przejścia dalej).
 
 ## 6. Planowana integracja (etap 2): operator płatności

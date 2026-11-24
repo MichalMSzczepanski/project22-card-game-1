@@ -217,11 +217,31 @@ class GameFlowE2ETest {
         assertThat(adminView).contains("/games/" + gameId + "/end");
         assertThat(adminView).contains("/games/" + gameId + "/family-mode");
         assertThat(adminView).contains("/games/" + gameId + "/kick");
+        assertThat(adminView).contains("/games/" + gameId + "/transfer-admin");
 
         String guestView = getAsPlayer("Guest1", "/games/" + gameId).getResponse().getContentAsString();
         assertThat(guestView).doesNotContain("/games/" + gameId + "/end");
         assertThat(guestView).doesNotContain("/games/" + gameId + "/family-mode");
         assertThat(guestView).doesNotContain("/games/" + gameId + "/kick");
+        assertThat(guestView).doesNotContain("/games/" + gameId + "/transfer-admin");
+    }
+
+    @Test
+    @Transactional
+    void adminCanTransferTheRoleToAnotherPlayerWithoutLeaving() throws Exception {
+        String gameId = createGame("Host", 10);
+        joinGame("Guest1", gameId);
+        joinGame("Guest2", gameId);
+
+        MvcResult transferred = postAsPlayer("Host", "/games/" + gameId, "/games/" + gameId + "/transfer-admin",
+                Map.of("targetPlayerId", playerIdOf("Guest1", gameId)));
+        assertThat(transferred.getResponse().getStatus()).isEqualTo(302);
+
+        String newAdminView = getAsPlayer("Guest1", "/games/" + gameId).getResponse().getContentAsString();
+        assertThat(newAdminView).contains("/games/" + gameId + "/end");
+
+        String formerAdminView = getAsPlayer("Host", "/games/" + gameId).getResponse().getContentAsString();
+        assertThat(formerAdminView).doesNotContain("/games/" + gameId + "/end");
     }
 
     @Test

@@ -45,5 +45,5 @@ Cel: grywalne w internecie, bezpieczne, bez kosztów-niespodzianek.
 - ⬜ Głos publiczności (QR z TV, +1 punkt dla ulubionej odpowiedzi)
 - ⬜ Kolejne zestawy okolicznościowe × pokolenia
 - ⬜ Własny pakiet kart na zamówienie (impreza firmowa, panieński)
-- ⬜ Dobrowolne przekazanie roli admina gry
+- ✅ Dobrowolne przekazanie roli admina gry
 - ⬜ **Easter eggi i uatrakcyjnienia** (hat trick, zmartwychwstanie, underdog bonus, runda-bonus x2, finałowa runda x3, Rando) — pełna lista z przykładowymi tekstami: [`MECHANICS.md`](MECHANICS.md) → „Easter eggi i uatrakcyjnienia”. Zasada: śmieszny tekst przed nową mechaniką punktową.

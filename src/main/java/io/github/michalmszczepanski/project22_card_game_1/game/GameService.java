@@ -396,6 +396,18 @@ public class GameService {
         log.info("Gra {}: admin wyrzucił {}", gameId, target.getNickname());
     }
 
+    /** Admin voluntarily hands the role to someone else, without leaving the game (README § 5). */
+    public void transferAdmin(String gameId, String adminPlayerId, String targetPlayerId) {
+        Game game = requireGame(gameId);
+        requireAdmin(game, adminPlayerId);
+        if (adminPlayerId.equals(targetPlayerId)) {
+            throw new InvalidGameActionException("Już jesteś adminem.");
+        }
+        Player target = requirePlayer(game, targetPlayerId);
+        game.setAdminPlayerId(target.getId());
+        log.info("Gra {}: admin przekazał rolę {}", gameId, target.getNickname());
+    }
+
     /**
      * "Przejmij admina" (README § 5) — only works while the game has none; whoever claims it
      * first wins. A genuine dead-heat is caught by Game's optimistic lock instead (the generic

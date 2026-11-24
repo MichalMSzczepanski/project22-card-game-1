@@ -407,6 +407,27 @@ class GameServiceTest {
     }
 
     @Test
+    void adminCanVoluntarilyTransferTheRoleWithoutLeaving() {
+        Game game = createGame(freePacks());
+        Player admin = gameService.join(game.getId(), "Ala");
+        Player other = gameService.join(game.getId(), "Bartek");
+        gameService.join(game.getId(), "Celina");
+
+        assertThatThrownBy(() -> gameService.transferAdmin(game.getId(), other.getId(), admin.getId()))
+                .isInstanceOf(InvalidGameActionException.class)
+                .hasMessage("Tylko admin może to zrobić.");
+
+        assertThatThrownBy(() -> gameService.transferAdmin(game.getId(), admin.getId(), admin.getId()))
+                .isInstanceOf(InvalidGameActionException.class)
+                .hasMessage("Już jesteś adminem.");
+
+        gameService.transferAdmin(game.getId(), admin.getId(), other.getId());
+        assertThat(game.isAdmin(other.getId())).isTrue();
+        assertThat(game.isAdmin(admin.getId())).isFalse();
+        assertThat(game.activePlayers()).extracting(Player::getId).contains(admin.getId()); // still in the game
+    }
+
+    @Test
     void adminCanKickAnotherPlayerButNotThemselves() {
         Game game = createGame(freePacks());
         Player admin = gameService.join(game.getId(), "Ala");

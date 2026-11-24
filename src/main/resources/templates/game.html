@@ -90,6 +90,15 @@
         <span>
             <span class="badge bg-dark rounded-pill" th:text="${p.points()} + ' pkt'"></span>
             <form method="post" th:if="${view.isAdmin() and !p.me()}" class="d-inline"
+                  th:action="@{/games/{id}/transfer-admin(id=${view.gameId()})}"
+                  onsubmit="return confirm('Przekazać admina temu graczowi?');">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                <input type="hidden" name="targetPlayerId" th:value="${p.id()}">
+                <button type="submit" class="btn btn-sm btn-outline-warning ms-1" title="Przekaż admina">
+                    <i class="bi bi-person-check"></i>
+                </button>
+            </form>
+            <form method="post" th:if="${view.isAdmin() and !p.me()}" class="d-inline"
                   th:action="@{/games/{id}/kick(id=${view.gameId()})}"
                   onsubmit="return confirm('Wyrzucić tego gracza?');">
                 <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
