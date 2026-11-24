@@ -79,7 +79,7 @@ class GameFlowE2ETest {
 
         // Edge case: a non-host can't start, even with a perfectly valid session + CSRF token.
         MvcResult rejected = startGame("Guest1", gameId);
-        assertThat(rejected.getFlashMap().get("error")).isEqualTo("Tylko twórca gry może ją wystartować.");
+        assertThat(rejected.getFlashMap().get("error")).isEqualTo("Tylko admin może to zrobić.");
         assertThat(gameRepository.findById(gameId).orElseThrow().getStatus()).isEqualTo(GameStatus.LOBBY);
 
         MvcResult started = startGame("Host", gameId);
@@ -203,6 +203,73 @@ class GameFlowE2ETest {
         assertThat(rejected.getFlashMap().get("error")).isEqualTo("Gra już się zaczęła, nie można dołączyć.");
     }
 
+    // --- Admin role (README § 5) — web-layer behavior GameServiceTest can't see: rendered HTML,
+    //     and the kicked player's own next poll getting redirected home. ----------------------
+
+    @Test
+    @Transactional
+    void adminOnlyButtonsAreHiddenFromNonAdminPlayers() throws Exception {
+        String gameId = createGame("Host", 10);
+        joinGame("Guest1", gameId);
+        joinGame("Guest2", gameId);
+
+        String adminView = getAsPlayer("Host", "/games/" + gameId).getResponse().getContentAsString();
+        assertThat(adminView).contains("/games/" + gameId + "/end");
+        assertThat(adminView).contains("/games/" + gameId + "/family-mode");
+        assertThat(adminView).contains("/games/" + gameId + "/kick");
+
+        String guestView = getAsPlayer("Guest1", "/games/" + gameId).getResponse().getContentAsString();
+        assertThat(guestView).doesNotContain("/games/" + gameId + "/end");
+        assertThat(guestView).doesNotContain("/games/" + gameId + "/family-mode");
+        assertThat(guestView).doesNotContain("/games/" + gameId + "/kick");
+    }
+
+    @Test
+    @Transactional
+    void kickedPlayerIsRedirectedHomeWithMessageOnNextPoll() throws Exception {
+        String gameId = createGame("Host", 10);
+        joinGame("Guest1", gameId);
+        joinGame("Guest2", gameId);
+
+        MvcResult kicked = postAsPlayer("Host", "/games/" + gameId, "/games/" + gameId + "/kick",
+                Map.of("targetPlayerId", playerIdOf("Guest1", gameId)));
+        assertThat(kicked.getResponse().getStatus()).isEqualTo(302);
+
+        MvcResult guest1NextPoll = getAsPlayer("Guest1", "/games/" + gameId);
+        assertThat(guest1NextPoll.getResponse().getStatus()).isEqualTo(302);
+        assertThat(guest1NextPoll.getResponse().getRedirectedUrl()).isEqualTo("/");
+        assertThat(guest1NextPoll.getFlashMap().get("info")).isEqualTo("Admin usunął Cię z gry.");
+
+        String guest2View = getAsPlayer("Guest2", "/games/" + gameId).getResponse().getContentAsString();
+        assertThat(guest2View).contains("został(a) usunięty(a) z gry");
+    }
+
+    @Test
+    @Transactional
+    void noAdminBannerAndTakeOverButtonAppearAfterAdminLeaves() throws Exception {
+        String gameId = createGame("Host", 10);
+        joinGame("Guest1", gameId);
+        joinGame("Guest2", gameId);
+
+        postAsPlayer("Host", "/games/" + gameId, "/games/" + gameId + "/leave", Map.of());
+
+        String guest1View = getAsPlayer("Guest1", "/games/" + gameId).getResponse().getContentAsString();
+        assertThat(guest1View).contains("Przejmij admina");
+        assertThat(guest1View).contains("/games/" + gameId + "/take-over-admin");
+
+        postAsPlayer("Guest1", "/games/" + gameId, "/games/" + gameId + "/take-over-admin", Map.of());
+        String afterTakeOver = getAsPlayer("Guest1", "/games/" + gameId).getResponse().getContentAsString();
+        assertThat(afterTakeOver).doesNotContain("Przejmij admina");
+        assertThat(afterTakeOver).contains("/games/" + gameId + "/end"); // Guest1 now sees admin-only buttons
+    }
+
+    /** Finds a player's id by nickname straight from the DB — the test only knows nicknames, not ids. */
+    private String playerIdOf(String nickname, String gameId) {
+        return gameRepository.findById(gameId).orElseThrow().getPlayers().stream()
+                .filter(p -> p.getNickname().equals(nickname))
+                .findFirst().orElseThrow().getId();
+    }
+
     // --- HTTP/session plumbing — this is what makes these tests "real browser" realistic ---------
 
     private String createGame(String nickname, int totalRounds) throws Exception {
@@ -255,6 +322,18 @@ class GameFlowE2ETest {
             request.cookie(cookie);
         }
 
+        MvcResult result = mockMvc.perform(request).andReturn();
+        rememberSessionCookie(nickname, result);
+        return result;
+    }
+
+    /** GETs {@code path} carrying {@code nickname}'s stored session cookie, same as a browser poll. */
+    private MvcResult getAsPlayer(String nickname, String path) throws Exception {
+        MockHttpServletRequestBuilder request = get(path);
+        Cookie cookie = sessionCookies.get(nickname);
+        if (cookie != null) {
+            request.cookie(cookie);
+        }
         MvcResult result = mockMvc.perform(request).andReturn();
         rememberSessionCookie(nickname, result);
         return result;

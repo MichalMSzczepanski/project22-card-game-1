@@ -11,7 +11,7 @@
 ## Gracze i role
 - **3–5 graczy** (⚠️ docelowo do 10).
 - **Prowadzący** — zmienia się co rundę, po kolei według kolejności dołączenia (wyszli gracze są pomijani). W swojej rundzie nie odpowiada i nie zdobywa punktów.
-- **Twórca gry (host)** — kto założył grę (dołączył pierwszy); jeśli wyjdzie, rolę automatycznie przejmuje następny najdłużej obecny gracz, bez żadnej akcji „przejmij”. Dziś **tylko on może kliknąć „Start gry”**. Pełna rola admina (zarządzanie graczami, wyrzucanie, tryb rodzinny, zakończenie gry) ⚠️ wciąż w planach — README sekcja 5.
+- **Admin** — kto założył grę (dołączył pierwszy) automatycznie zostaje adminem; zarządza graczami, trybem rodzinnym i zakończeniem gry, tylko on klika „Start gry”. Gdy ucieknie (opuści grę / zostanie uznany za rozłączonego), rola **nie przechodzi automatycznie** — gra zostaje bez admina, dopóki ktoś nie kliknie „Przejmij admina” (kto pierwszy, ten admin). Pełna specyfikacja: README sekcja 5.
 - **Ekran TV** — wspólny podgląd przebiegu gry, bez akcji.
 
 ## Ręka

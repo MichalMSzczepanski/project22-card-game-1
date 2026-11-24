@@ -10,7 +10,7 @@
 
 ## v1 — publiczne darmowe MVP
 Cel: grywalne w internecie, bezpieczne, bez kosztów-niespodzianek.
-- 🟨 Rola admina gry (README sekcja 5) — host-only start zrobione, reszta (wyrzucanie, „Przejmij admina”, TV) w planach
+- ✅ Rola admina gry (README sekcja 5) — start, tryb rodzinny, zakończ, wyrzucanie, „Przejmij admina”, TV
 - ⬜ Do 10 graczy
 - ✅ Punktacja podium 3-2-1 (MECHANICS.md)
 - ✅ Dłuższy timeout rozłączenia (60s, zgaszony ekran telefonu nie wyrzuca z gry) i priorytet prowadzącego (30s) na „Następna runda”

@@ -93,9 +93,7 @@ public class GameService {
         if (game.getStatus() != GameStatus.LOBBY) {
             throw new InvalidGameActionException("Gra już wystartowała.");
         }
-        if (!game.isHost(playerId)) {
-            throw new InvalidGameActionException("Tylko twórca gry może ją wystartować.");
-        }
+        requireAdmin(game, playerId);
         if (game.activePlayers().size() < gameProperties.players().min()) {
             throw new InvalidGameActionException("Potrzeba minimum " + gameProperties.players().min() + " graczy.");
         }
@@ -226,10 +224,16 @@ public class GameService {
         requireStatus(game, GameStatus.REVEALED);
         Round round = game.getCurrentRound();
 
+        boolean isLeader = round.getLeader().getId().equals(playerId);
         boolean leaderWindowOpen = Instant.now().isBefore(
                 round.getPhaseStartedAt().plusSeconds(gameProperties.timeouts().revealSeconds()));
-        if (leaderWindowOpen && !round.getLeader().getId().equals(playerId)) {
-            throw new InvalidGameActionException("Jeszcze chwila — najpierw może kliknąć prowadzący tej rundy.");
+        if (leaderWindowOpen) {
+            if (!isLeader) {
+                throw new InvalidGameActionException("Jeszcze chwila — najpierw może kliknąć prowadzący tej rundy.");
+            }
+        } else if (!isLeader && !game.isAdmin(playerId)) {
+            // Leader priority always applies; once the window closes, admin takes over from "anyone" (README § 5).
+            throw new InvalidGameActionException("Tylko admin może to zrobić.");
         }
 
         if (round.getNumber() >= game.getTotalRounds()) {
@@ -327,8 +331,9 @@ public class GameService {
      * drawn. Doesn't yank the card currently on the table, but immediately strips
      * any non-family cards already in hand and tops players back up.
      */
-    public void setFamilyMode(String gameId, boolean enabled) {
+    public void setFamilyMode(String gameId, String playerId, boolean enabled) {
         Game game = requireGame(gameId);
+        requireAdmin(game, playerId);
         game.setFamilyMode(enabled);
         log.info("Gra {}: tryb rodzinny {}", gameId, enabled ? "włączony" : "wyłączony");
 
@@ -345,9 +350,10 @@ public class GameService {
         }
     }
 
-    /** Ends the game early (any point — lobby, mid-round, whenever). Any player can call this. */
-    public void endGame(String gameId) {
+    /** Ends the game early (any point — lobby, mid-round, whenever). Admin-only (README § 5). */
+    public void endGame(String gameId, String playerId) {
         Game game = requireGame(gameId);
+        requireAdmin(game, playerId);
         if (game.getStatus() == GameStatus.FINISHED) {
             return;
         }
@@ -363,7 +369,35 @@ public class GameService {
     public void leave(String gameId, String playerId) {
         Game game = requireGame(gameId);
         Player player = requirePlayer(game, playerId);
-        removePlayer(game, player);
+        removePlayer(game, player, false);
+    }
+
+    /** Admin-only (README § 5): removes someone else, same end state as them leaving voluntarily. */
+    public void kickPlayer(String gameId, String adminPlayerId, String targetPlayerId) {
+        Game game = requireGame(gameId);
+        requireAdmin(game, adminPlayerId);
+        if (adminPlayerId.equals(targetPlayerId)) {
+            throw new InvalidGameActionException("Nie możesz wyrzucić samego siebie.");
+        }
+        Player target = requirePlayer(game, targetPlayerId);
+        game.setLastKickedPlayerId(targetPlayerId);
+        removePlayer(game, target, true);
+        log.info("Gra {}: admin wyrzucił {}", gameId, target.getNickname());
+    }
+
+    /**
+     * "Przejmij admina" (README § 5) — only works while the game has none; whoever claims it
+     * first wins. A genuine dead-heat is caught by Game's optimistic lock instead (the generic
+     * "ktoś inny coś zmienił" message in GameController), not this explicit check.
+     */
+    public void takeOverAdmin(String gameId, String playerId) {
+        Game game = requireGame(gameId);
+        requirePlayer(game, playerId);
+        if (game.hasAdmin()) {
+            throw new InvalidGameActionException("Ktoś właśnie przejął admina.");
+        }
+        game.setAdminPlayerId(playerId);
+        log.info("Gra {}: {} przejął rolę admina", gameId, playerId);
     }
 
     /** Bumps this player's own "last seen" clock — called on every request their browser makes. */
@@ -391,7 +425,7 @@ public class GameService {
             if (exempt.contains(player.getId())) {
                 continue;
             }
-            if (player.getLastSeenAt().isBefore(cutoff) && removePlayer(game, player)) {
+            if (player.getLastSeenAt().isBefore(cutoff) && removePlayer(game, player, false)) {
                 return; // game got deleted — nothing left to prune
             }
         }
@@ -421,7 +455,7 @@ public class GameService {
      *
      * @return true if the game was deleted as a result (nobody left to play with)
      */
-    private boolean removePlayer(Game game, Player player) {
+    private boolean removePlayer(Game game, Player player, boolean kicked) {
         if (player.isLeft()) {
             return false;
         }
@@ -434,13 +468,18 @@ public class GameService {
         }
         log.info("Gra {}: {} opuścił grę", game.getId(), nickname);
 
+        // Admin "ucieka" (README § 5) — no auto-transfer, stays null until someone takes it over.
+        if (game.isAdmin(player.getId())) {
+            game.setAdminPlayerId(null);
+        }
+
         if (game.activePlayers().isEmpty()) {
             log.info("Gra {}: wszyscy opuścili grę, usuwam", game.getId());
             gameRepository.delete(game);
             return true;
         }
 
-        game.recordDeparture(nickname);
+        game.recordDeparture(nickname, kicked);
 
         // The departed player might have been the last answerer the round was waiting on.
         Round round = game.getCurrentRound();
@@ -458,6 +497,12 @@ public class GameService {
         return game.findPlayer(playerId)
                 .filter(p -> !p.isLeft())
                 .orElseThrow(() -> new InvalidGameActionException("Nieznany gracz w tej grze."));
+    }
+
+    private void requireAdmin(Game game, String playerId) {
+        if (!game.isAdmin(playerId)) {
+            throw new InvalidGameActionException("Tylko admin może to zrobić.");
+        }
     }
 
     private void requireStatus(Game game, GameStatus expected) {

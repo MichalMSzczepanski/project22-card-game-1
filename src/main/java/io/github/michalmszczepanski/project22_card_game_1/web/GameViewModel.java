@@ -44,13 +44,16 @@ public record GameViewModel(
         int rankedCount,
         int ranksNeededTotal,
         String justLeftNickname,
+        boolean justLeftWasKick,
         int pollIntervalSeconds,
-        boolean isHost,
-        String hostNickname,
+        boolean isAdmin,
+        String adminNickname,
+        boolean hasAdmin,
+        boolean canTakeOverAdmin,
         boolean canAdvanceRound
 ) {
 
-    public record PlayerRow(String nickname, int points, boolean leader, boolean me) {
+    public record PlayerRow(String id, String nickname, int points, boolean leader, boolean me) {
     }
 
     public record HandCard(Long id, String text) {
@@ -72,6 +75,7 @@ public record GameViewModel(
 
         List<PlayerRow> players = game.activePlayers().stream()
                 .map(p -> new PlayerRow(
+                        p.getId(),
                         p.getNickname(),
                         p.getPoints(),
                         round != null && round.getLeader().getId().equals(p.getId()),
@@ -129,7 +133,7 @@ public record GameViewModel(
                     .toList();
             finalStandings = game.activePlayers().stream()
                     .sorted(Comparator.comparingInt(Player::getPoints).reversed())
-                    .map(p -> new PlayerRow(p.getNickname(), p.getPoints(), false, me.isPresent() && me.get().getId().equals(p.getId())))
+                    .map(p -> new PlayerRow(p.getId(), p.getNickname(), p.getPoints(), false, me.isPresent() && me.get().getId().equals(p.getId())))
                     .toList();
         }
 
@@ -151,13 +155,17 @@ public record GameViewModel(
         }
 
         String justLeftNickname = null;
+        boolean justLeftWasKick = false;
         if (game.getLastLeftNickname() != null
                 && Duration.between(game.getLastLeftAt(), Instant.now()).getSeconds() < properties.timeouts().leaveBannerSeconds()) {
             justLeftNickname = game.getLastLeftNickname();
+            justLeftWasKick = game.isLastLeftWasKick();
         }
 
-        boolean isHost = me.isPresent() && game.isHost(me.get().getId());
-        String hostNickname = game.activePlayers().isEmpty() ? null : game.activePlayers().get(0).getNickname();
+        boolean isAdmin = me.isPresent() && game.isAdmin(me.get().getId());
+        String adminNickname = game.getAdminPlayerId() == null ? null
+                : game.findPlayer(game.getAdminPlayerId()).map(Player::getNickname).orElse(null);
+        boolean canTakeOverAdmin = me.isPresent() && !game.hasAdmin();
         boolean canAdvanceRound = game.getStatus() == GameStatus.REVEALED
                 && (secondsLeft == 0 || isLeader);
 
@@ -186,9 +194,12 @@ public record GameViewModel(
                 rankedCount,
                 ranksNeededTotal,
                 justLeftNickname,
+                justLeftWasKick,
                 properties.pollIntervalSeconds(),
-                isHost,
-                hostNickname,
+                isAdmin,
+                adminNickname,
+                game.hasAdmin(),
+                canTakeOverAdmin,
                 canAdvanceRound
         );
     }

@@ -264,7 +264,7 @@ class GameServiceTest {
         Player p3 = gameService.join(game.getId(), "Celina");
         startGame(game);
 
-        gameService.setFamilyMode(game.getId(), true);
+        gameService.setFamilyMode(game.getId(), p1.getId(), true);
         assertThat(game.isFamilyMode()).isTrue();
 
         for (Player p : List.of(p1, p2, p3)) {
@@ -358,31 +358,123 @@ class GameServiceTest {
     }
 
     @Test
-    void onlyHostCanStartGame() {
+    void onlyAdminCanStartGame() {
         Game game = createGame(freePacks());
-        Player host = gameService.join(game.getId(), "Ala");
+        Player admin = gameService.join(game.getId(), "Ala");
         Player other = gameService.join(game.getId(), "Bartek");
         gameService.join(game.getId(), "Celina");
 
         assertThatThrownBy(() -> gameService.startGame(game.getId(), other.getId()))
-                .isInstanceOf(InvalidGameActionException.class);
+                .isInstanceOf(InvalidGameActionException.class)
+                .hasMessage("Tylko admin może to zrobić.");
 
-        gameService.startGame(game.getId(), host.getId());
+        gameService.startGame(game.getId(), admin.getId());
         assertThat(game.getStatus()).isEqualTo(GameStatus.ANSWERING);
     }
 
     @Test
-    void hostRoleTransfersToNextEarliestJoinerIfOriginalHostLeaves() {
+    void adminRoleDoesNotAutoTransferWhenAdminLeaves_requiresTakeOverAdmin() {
         Game game = createGame(freePacks());
-        Player host = gameService.join(game.getId(), "Ala");
-        Player newHost = gameService.join(game.getId(), "Bartek");
+        Player admin = gameService.join(game.getId(), "Ala");
+        Player other = gameService.join(game.getId(), "Bartek");
         gameService.join(game.getId(), "Celina");
 
-        gameService.leave(game.getId(), host.getId());
+        gameService.leave(game.getId(), admin.getId());
         gameService.join(game.getId(), "Dawid"); // back up to the 3-player minimum
 
-        gameService.startGame(game.getId(), newHost.getId());
+        assertThat(game.hasAdmin()).isFalse();
+        assertThatThrownBy(() -> gameService.startGame(game.getId(), other.getId()))
+                .isInstanceOf(InvalidGameActionException.class);
+
+        gameService.takeOverAdmin(game.getId(), other.getId());
+        assertThat(game.isAdmin(other.getId())).isTrue();
+
+        gameService.startGame(game.getId(), other.getId());
         assertThat(game.getStatus()).isEqualTo(GameStatus.ANSWERING);
+    }
+
+    @Test
+    void takeOverAdminFailsWhileAnAdminIsStillActive() {
+        Game game = createGame(freePacks());
+        Player admin = gameService.join(game.getId(), "Ala");
+        Player other = gameService.join(game.getId(), "Bartek");
+        gameService.join(game.getId(), "Celina");
+
+        assertThatThrownBy(() -> gameService.takeOverAdmin(game.getId(), other.getId()))
+                .isInstanceOf(InvalidGameActionException.class)
+                .hasMessage("Ktoś właśnie przejął admina.");
+        assertThat(game.isAdmin(admin.getId())).isTrue();
+    }
+
+    @Test
+    void adminCanKickAnotherPlayerButNotThemselves() {
+        Game game = createGame(freePacks());
+        Player admin = gameService.join(game.getId(), "Ala");
+        Player target = gameService.join(game.getId(), "Bartek");
+        gameService.join(game.getId(), "Celina");
+
+        assertThatThrownBy(() -> gameService.kickPlayer(game.getId(), admin.getId(), admin.getId()))
+                .isInstanceOf(InvalidGameActionException.class)
+                .hasMessage("Nie możesz wyrzucić samego siebie.");
+
+        assertThatThrownBy(() -> gameService.kickPlayer(game.getId(), target.getId(), admin.getId()))
+                .isInstanceOf(InvalidGameActionException.class)
+                .hasMessage("Tylko admin może to zrobić.");
+
+        gameService.kickPlayer(game.getId(), admin.getId(), target.getId());
+        assertThat(game.findPlayer(target.getId())).isEmpty(); // still LOBBY — removal drops the row outright
+        assertThat(game.getLastKickedPlayerId()).isEqualTo(target.getId());
+        assertThat(game.getLastLeftNickname()).isEqualTo("Bartek");
+        assertThat(game.isLastLeftWasKick()).isTrue();
+    }
+
+    @Test
+    void onlyAdminCanToggleFamilyModeOrEndTheGame() {
+        Game game = createGame(freePacks());
+        Player admin = gameService.join(game.getId(), "Ala");
+        Player other = gameService.join(game.getId(), "Bartek");
+        gameService.join(game.getId(), "Celina");
+
+        assertThatThrownBy(() -> gameService.setFamilyMode(game.getId(), other.getId(), true))
+                .isInstanceOf(InvalidGameActionException.class)
+                .hasMessage("Tylko admin może to zrobić.");
+
+        assertThatThrownBy(() -> gameService.endGame(game.getId(), other.getId()))
+                .isInstanceOf(InvalidGameActionException.class)
+                .hasMessage("Tylko admin może to zrobić.");
+
+        gameService.setFamilyMode(game.getId(), admin.getId(), true);
+        assertThat(game.isFamilyMode()).isTrue();
+
+        gameService.endGame(game.getId(), admin.getId());
+        assertThat(game.getStatus()).isEqualTo(GameStatus.FINISHED);
+    }
+
+    @Test
+    void afterLeaderWindowClosesOnlyAdminOrTheLeaderCanAdvanceTheRound() {
+        Game game = createGame(freePacks());
+        Player admin = gameService.join(game.getId(), "Ala");
+        gameService.join(game.getId(), "Bartek");
+        gameService.join(game.getId(), "Celina");
+        startGame(game);
+        playOneRound(game);
+
+        Player leader = game.getCurrentRound().getLeader();
+        Player neitherAdminNorLeader = game.activePlayers().stream()
+                .filter(p -> !p.getId().equals(leader.getId()) && !p.getId().equals(admin.getId()))
+                .findFirst().orElseThrow();
+
+        game.getCurrentRound().setPhaseStartedAt(
+                java.time.Instant.now().minusSeconds(gameProperties.timeouts().revealSeconds() + 5));
+
+        if (!leader.getId().equals(admin.getId())) {
+            assertThatThrownBy(() -> gameService.nextRound(game.getId(), neitherAdminNorLeader.getId()))
+                    .isInstanceOf(InvalidGameActionException.class)
+                    .hasMessage("Tylko admin może to zrobić.");
+        }
+
+        gameService.nextRound(game.getId(), admin.getId());
+        assertThat(game.getCurrentRound().getNumber()).isEqualTo(2);
     }
 
     @Test
@@ -429,23 +521,8 @@ class GameServiceTest {
         assertThat(game.getCurrentRound().getNumber()).isEqualTo(2);
     }
 
-    @Test
-    void nextRoundOpensToEveryoneAfterRevealPriorityWindowExpires() {
-        Game game = createGame(freePacks());
-        gameService.join(game.getId(), "Ala");
-        gameService.join(game.getId(), "Bartek");
-        gameService.join(game.getId(), "Celina");
-        startGame(game);
-
-        playOneRound(game);
-        Round round = game.getCurrentRound();
-        Player nonLeader = game.answerersInOrder().get(0);
-
-        round.setPhaseStartedAt(java.time.Instant.now().minusSeconds(gameProperties.timeouts().revealSeconds() + 5));
-
-        gameService.nextRound(game.getId(), nonLeader.getId());
-        assertThat(game.getCurrentRound().getNumber()).isEqualTo(2);
-    }
+    // Replaced by afterLeaderWindowClosesOnlyAdminOrTheLeaderCanAdvanceTheRound — README § 5 narrowed
+    // "opens to everyone after the window" down to "opens to admin" (leader keeps priority throughout).
 
     @Test
     void leavingLobbyRemovesPlayerOutright() {

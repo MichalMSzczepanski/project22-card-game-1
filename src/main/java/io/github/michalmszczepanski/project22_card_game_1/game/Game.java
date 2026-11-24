@@ -104,6 +104,25 @@ public class Game {
     private String lastLeftNickname;
     @Getter
     private Instant lastLeftAt;
+    @Getter
+    private boolean lastLeftWasKick;
+
+    /**
+     * Null when nobody holds the role (README § 5 "Ucieczka admina") — doesn't auto-transfer like the
+     * old host-by-joinOrder did; stays null until some active player calls {@code takeOverAdmin}.
+     */
+    @Getter
+    @Setter
+    private String adminPlayerId;
+
+    /**
+     * Id of whoever an admin most recently kicked, so that exact player's own next page load (still
+     * carrying their old session) can be told "Admin usunął Cię z gry" — set once, read once: the
+     * controller clears their session on the redirect, so it can never match again from that browser.
+     */
+    @Getter
+    @Setter
+    private String lastKickedPlayerId;
 
     @Version
     private Long version;
@@ -113,10 +132,16 @@ public class Game {
         this.totalRounds = totalRounds;
     }
 
-    /** Adds a player and wires up the bidirectional FK + join-order used for turn rotation. */
+    /**
+     * Adds a player and wires up the bidirectional FK + join-order used for turn rotation.
+     * Whoever joins first (founds the game) automatically becomes admin (README § 5).
+     */
     public void addPlayer(Player player) {
         player.setGame(this);
         player.setJoinOrder(players.size());
+        if (players.isEmpty()) {
+            adminPlayerId = player.getId();
+        }
         players.add(player);
     }
 
@@ -124,10 +149,12 @@ public class Game {
         return activePlayers().size() >= maxPlayers;
     }
 
-    /** The host is whoever joined earliest and is still active — no separate "admin" state to track or hand off. */
-    public boolean isHost(String playerId) {
-        List<Player> active = activePlayers();
-        return !active.isEmpty() && active.get(0).getId().equals(playerId);
+    public boolean isAdmin(String playerId) {
+        return playerId != null && playerId.equals(adminPlayerId);
+    }
+
+    public boolean hasAdmin() {
+        return adminPlayerId != null;
     }
 
     public Optional<Player> findPlayer(String playerId) {
@@ -156,8 +183,9 @@ public class Game {
         return players.get(leaderIndex);
     }
 
-    public void recordDeparture(String nickname) {
+    public void recordDeparture(String nickname, boolean kicked) {
         this.lastLeftNickname = nickname;
         this.lastLeftAt = Instant.now();
+        this.lastLeftWasKick = kicked;
     }
 }

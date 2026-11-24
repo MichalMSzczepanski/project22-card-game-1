@@ -6,10 +6,10 @@ Standardy kodu: [`CODING.md`](CODING.md) · Prawo, licencje, etapy: [`FORMAL.md`
 
 ## 1. Jak działa gra (przepływ)
 
-1. **Tworzenie gry** — `POST /games`. Osoba tworząca podaje nick, wybiera pakiety kart i **liczbę rund** (1..`game.max-total-rounds`, domyślnie max 20 — formularz podsuwa 10); dostaje losowy 5-znakowy kod gry (`GameCodeGenerator`) i automatycznie dołącza jako pierwszy gracz (= **host/twórca gry**, `GameService.createGameAndJoin`).
+1. **Tworzenie gry** — `POST /games`. Osoba tworząca podaje nick, wybiera pakiety kart i **liczbę rund** (1..`game.max-total-rounds`, domyślnie max 20 — formularz podsuwa 10); dostaje losowy 5-znakowy kod gry (`GameCodeGenerator`), automatycznie dołącza jako pierwszy gracz i tym samym staje się **adminem** (`Game.adminPlayerId`, `Game.addPlayer`, `GameService.createGameAndJoin`) — pełna specyfikacja roli admina: sekcja 5.
 2. **Lobby** — inni dołączają kodem (`POST /games/join`). Min. 3, max. 5 graczy (`game.players.min` / `game.players.max` w `application.yaml`, bindowane przez `GameProperties`).
-3. **Start** — **tylko host** (kto dołączył najwcześniej i wciąż jest aktywny — `Game.isHost()`, bez osobnego stanu "admina"; jeśli host wyjdzie, rola automatycznie przechodzi na kolejnego najdłużej obecnego gracza) może kliknąć "Start gry" — `GameService.startGame(gameId, playerId)` odrzuca innych z komunikatem.
-4. **Tyle rund, ile wybrał host przy tworzeniu gry** (`Game.totalRounds`, nie globalny `game.max-total-rounds` — to tylko sufit), każda ma 3 fazy:
+3. **Start** — **tylko admin** może kliknąć "Start gry" — `GameService.startGame(gameId, playerId)` odrzuca innych z komunikatem "Tylko admin może to zrobić." Gdy admin ucieknie (wyjdzie/rozłączy się), rola **nie** przechodzi automatycznie — gra zostaje bez admina, dopóki ktoś nie kliknie „Przejmij admina" (`GameService.takeOverAdmin`).
+4. **Tyle rund, ile wybrał admin przy tworzeniu gry** (`Game.totalRounds`, nie globalny `game.max-total-rounds` — to tylko sufit), każda ma 3 fazy:
    - `ANSWERING` — prowadzący dostaje czarną kartę-pytanie (`CardType.QUESTION`); wszyscy pozostali gracze wybierają po jednej karcie-odpowiedzi (`CardType.ANSWER`) z ręki (7 kart, `game.hand-size`). Limit czasu: `game.timeouts.answer-seconds` (60s) — kto nie zdąży, dostaje losową kartę z ręki.
    - `RANKING` — prowadzący wybiera **podium** z zebranych (potasowanych, anonimowych) odpowiedzi: miejsca wg `game.scoring.podium-size` (domyślnie 3, mniej jeśli jest mniej odpowiedzi) — `Round.podiumSize()`. Limit czasu: `game.timeouts.ranking-seconds` (45s) — po nim runda odkrywa się z tym, co prowadzący zdążył przyznać; nieprzyznane miejsca i odpowiedzi poza podium dostają 0 pkt.
    - `REVEALED` — wyniki rundy: kto napisał co i ile punktów to dało. Pierwsze `game.timeouts.reveal-seconds` (30s) kliknąć "Następna runda" może tylko prowadzący tej rundy (`round.getLeader()`); po tym czasie — każdy (`GameService.nextRound(gameId, playerId)`, `GameViewModel.canAdvanceRound()`).
@@ -100,12 +100,12 @@ a potem dla każdej: poszerz → zaktualizuj dane → zwęż, tak jak wyżej.
 
 ### Rozgrywka
 - [x] **Punktacja podium 3-2-1**: prowadzący wybiera tylko 3 najlepsze odpowiedzi (zamiast układać wszystkie); mniej odpowiedzi → mniej miejsc; timeout → punkty tylko za przyznane miejsca (`GameService.scoreRound`, `submitRanking`, `Round.podiumSize`/`pointsForRank`). Spec: `MECHANICS.md`.
-- [ ] **Rola admina** — tylko admin zarządza grą i graczami; gdy admin ucieknie, dowolny gracz może go przejąć przyciskiem „Przejmij admina”. Specyfikacja: sekcja 5.
-  - [x] Założyciel = host; tylko host może kliknąć „Start gry” (`Game.isHost()` — po joinOrder, nie osobny stan; host wychodzi → rola sama przechodzi na następnego, bez akcji „przejmij”).
-  - [ ] Pozostałe akcje admina (następna runda poza oknem priorytetu prowadzącego, tryb rodzinny, zakończ) wciąż dostępne dla każdego — zablokować dla reszty.
-  - [ ] Nowa akcja „Wyrzuć gracza” (wyrzucony może wrócić kodem).
-  - [ ] Gra bez admina + przycisk „Przejmij admina” (kto pierwszy, ten admin) — dziś niepotrzebne dla hosta (auto-przejęcie przez joinOrder), ale potrzebne, gdy admin będzie mieć więcej uprawnień niż host.
-  - [ ] TV pokazuje aktualnego admina / „Brak admina”.
+- [x] **Rola admina** — tylko admin zarządza grą i graczami; gdy admin ucieknie, dowolny aktywny gracz może go przejąć przyciskiem „Przejmij admina”. Specyfikacja: sekcja 5. `Game.adminPlayerId` zastąpił `Game.isHost()` (usunięty) — founder = admin (`Game.addPlayer`), bez auto-przejęcia po joinOrder.
+  - [x] Założyciel gry automatycznie zostaje adminem (`Game.addPlayer`); tylko admin kliknie „Start gry”.
+  - [x] Pozostałe akcje admina (następna runda poza oknem priorytetu prowadzącego, tryb rodzinny, zakończ) zablokowane dla reszty (`GameService.requireAdmin`); przyciski skryte w `game.html` (`view.isAdmin()`).
+  - [x] Nowa akcja „Wyrzuć gracza” (`GameService.kickPlayer`, `POST /games/{id}/kick`) — wyrzucony może wrócić kodem (nie pamiętamy wyrzuconych, jak zapisano w Decyzjach niżej).
+  - [x] Gra bez admina + przycisk „Przejmij admina” (`GameService.takeOverAdmin`, `POST /games/{id}/take-over-admin`, kto pierwszy, ten admin) — działa tak samo w lobby i w trakcie gry.
+  - [x] TV pokazuje aktualnego admina / „Brak admina” (`tv.html`).
   - [ ] Później (poza MVP): dobrowolne przekazanie roli admina konkretnej osobie.
 - [ ] **Do 10 graczy** (+ prowadzący) — podnieść `Game.MAX_PLAYERS`; sprawdzić, czy talia/pakiety starczą na 20 rund przy pełnym stole (`HAND_SIZE` × gracze + dobieranie).
 - [ ] Gracz dołączający w trakcie gry wchodzi od następnej rundy.

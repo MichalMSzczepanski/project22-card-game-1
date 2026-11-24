@@ -32,7 +32,7 @@ Java 17, Spring Boot 4.1.2, Maven · Thymeleaf **bez JS** (meta-refresh co 3 s) 
 - Brak schedulera: timeouty i rozłączenia leniwie przy każdym wejściu na stronę.
 
 ## Decyzje
-- Rola admina — w planach, spec. README sekcja 5; host-only "Start gry" (`Game.isHost()`) już zrobione jako pierwszy krok.
+- Rola admina — zrobiona, spec. README sekcja 5 (`Game.adminPlayerId`, `GameService.requireAdmin`/`kickPlayer`/`takeOverAdmin`); `Game.isHost()` usunięty.
 - Deployment: VPS ze stałą ceną + Cloudflare Tunnel; **żadnych usług pay-per-use**.
 - Docelowo Postgres + Flyway. Komunikacja zostaje polling (bez WebSocketów).
 - Bez danych osobowych autora w kodzie i konfiguracji.

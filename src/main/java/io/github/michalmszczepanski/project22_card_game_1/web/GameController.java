@@ -36,6 +36,9 @@ public class GameController {
             gameService.checkTimeout(gameId);
             gameService.pruneDisconnectedPlayers(gameId);
             Game game = gameService.getGame(gameId);
+            if (playerId != null && playerId.equals(game.getLastKickedPlayerId())) {
+                return goHome(session, redirectAttributes, "Admin usunął Cię z gry.");
+            }
             model.addAttribute("view", GameViewModel.of(game, playerId, gameProperties));
             return "game";
         } catch (GameNotFoundException e) {
@@ -113,13 +116,32 @@ public class GameController {
     @PostMapping("/family-mode")
     public String toggleFamilyMode(@PathVariable String gameId,
                                     @RequestParam boolean enabled,
+                                    HttpSession session,
                                     RedirectAttributes redirectAttributes) {
-        return withErrorHandling(gameId, redirectAttributes, () -> gameService.setFamilyMode(gameId, enabled));
+        String playerId = requirePlayerId(session);
+        return withErrorHandling(gameId, redirectAttributes, () -> gameService.setFamilyMode(gameId, playerId, enabled));
     }
 
     @PostMapping("/end")
-    public String end(@PathVariable String gameId, RedirectAttributes redirectAttributes) {
-        return withErrorHandling(gameId, redirectAttributes, () -> gameService.endGame(gameId));
+    public String end(@PathVariable String gameId, HttpSession session, RedirectAttributes redirectAttributes) {
+        String playerId = requirePlayerId(session);
+        return withErrorHandling(gameId, redirectAttributes, () -> gameService.endGame(gameId, playerId));
+    }
+
+    @PostMapping("/kick")
+    public String kick(@PathVariable String gameId,
+                        @RequestParam String targetPlayerId,
+                        HttpSession session,
+                        RedirectAttributes redirectAttributes) {
+        String adminPlayerId = requirePlayerId(session);
+        return withErrorHandling(gameId, redirectAttributes,
+                () -> gameService.kickPlayer(gameId, adminPlayerId, targetPlayerId));
+    }
+
+    @PostMapping("/take-over-admin")
+    public String takeOverAdmin(@PathVariable String gameId, HttpSession session, RedirectAttributes redirectAttributes) {
+        String playerId = requirePlayerId(session);
+        return withErrorHandling(gameId, redirectAttributes, () -> gameService.takeOverAdmin(gameId, playerId));
     }
 
     private String requirePlayerId(HttpSession session) {

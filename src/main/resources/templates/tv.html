@@ -21,8 +21,13 @@
 <div class="container py-4 text-center" style="max-width: 900px;">
 
     <div class="alert alert-secondary py-2" th:if="${view.justLeftNickname() != null}">
-        <i class="bi bi-door-open"></i> <strong th:text="${view.justLeftNickname()}"></strong> opuścił(a) grę.
+        <i class="bi bi-door-open"></i> <strong th:text="${view.justLeftNickname()}"></strong>
+        <span th:text="${view.justLeftWasKick()} ? 'został(a) usunięty(a) z gry.' : 'opuścił(a) grę.'"></span>
     </div>
+
+    <p class="small text-white-50 mb-3" th:if="${view.status().name() != 'FINISHED'}">
+        Admin: <strong th:text="${view.hasAdmin()} ? ${view.adminNickname()} : 'Brak admina'"></strong>
+    </p>
 
     <div th:if="${view.status().name() == 'LOBBY'}">
         <p class="fs-3 mb-2">Dołącz kodem na swoim telefonie:</p>
