@@ -61,8 +61,8 @@ public class GameService {
 
     public Player join(String gameId, String nickname, Long appUserId) {
         Game game = requireGame(gameId);
-        if (game.getStatus() != GameStatus.LOBBY) {
-            throw new InvalidGameActionException("Gra już się zaczęła, nie można dołączyć.");
+        if (game.getStatus() == GameStatus.FINISHED) {
+            throw new InvalidGameActionException("Gra już się zakończyła, nie można dołączyć.");
         }
         if (game.isFull(gameProperties.players().max())) {
             throw new InvalidGameActionException("Pokój jest pełny (max " + gameProperties.players().max() + " graczy).");
@@ -74,6 +74,11 @@ public class GameService {
         }
 
         Player player = new Player(trimmed, appUserId);
+        // Mid-game join (README TODO): sits out the round in progress — no hand, excluded from
+        // Game.answerersInOrder() — and joins properly (dealt a hand) from the next one.
+        if (game.getStatus() != GameStatus.LOBBY && game.getCurrentRound() != null) {
+            player.setJoinedAtRound(game.getCurrentRound().getNumber());
+        }
         game.addPlayer(player);
         log.debug("Gracz {} dołączył do gry {}", trimmed, gameId);
         return player;

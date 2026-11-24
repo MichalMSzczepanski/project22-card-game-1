@@ -190,17 +190,63 @@ class GameFlowE2ETest {
 
     @Test
     @Transactional
-    void joiningAGameThatAlreadyStartedIsRejected() throws Exception {
-        String gameId = createGame("Host", 10);
+    void joiningAFinishedGameIsRejected() throws Exception {
+        String gameId = createGame("Host", 1);
         joinGame("Guest1", gameId);
         joinGame("Guest2", gameId);
         startGame("Host", gameId);
+
+        Game game = gameRepository.findById(gameId).orElseThrow();
+        for (Player answerer : game.answerersInOrder()) {
+            answer(answerer.getNickname(), gameId, answerer.getHand().get(0).getId());
+        }
+        game = gameRepository.findById(gameId).orElseThrow();
+        int rankToAssign = 1;
+        for (Submission submission : List.copyOf(game.getCurrentRound().getSubmissions())) {
+            rank(game.getCurrentRound().getLeader().getNickname(), gameId, submission.getId(), rankToAssign++);
+        }
+        nextRound(game.getCurrentRound().getLeader().getNickname(), gameId);
+        assertThat(gameRepository.findById(gameId).orElseThrow().getStatus()).isEqualTo(GameStatus.FINISHED);
 
         MvcResult rejected = postAsPlayer("Latecomer", "/", "/games/join", Map.of(
                 "code", gameId,
                 "nickname", "Latecomer"));
 
-        assertThat(rejected.getFlashMap().get("error")).isEqualTo("Gra już się zaczęła, nie można dołączyć.");
+        assertThat(rejected.getFlashMap().get("error")).isEqualTo("Gra już się zakończyła, nie można dołączyć.");
+    }
+
+    @Test
+    @Transactional
+    void joiningMidGameSitsOutTheCurrentRoundThenJoinsProperlyNextRound() throws Exception {
+        String gameId = createGame("Host", 10);
+        joinGame("Guest1", gameId);
+        joinGame("Guest2", gameId);
+        startGame("Host", gameId);
+
+        joinGame("Latecomer", gameId);
+        Game game = gameRepository.findById(gameId).orElseThrow();
+        Player latecomer = game.findPlayer(game.getPlayers().get(game.getPlayers().size() - 1).getId()).orElseThrow();
+        assertThat(latecomer.getNickname()).isEqualTo("Latecomer");
+        assertThat(latecomer.getHand()).isEmpty();
+        assertThat(game.answerersInOrder()).noneMatch(p -> p.getNickname().equals("Latecomer"));
+
+        String latecomerView = getAsPlayer("Latecomer", "/games/" + gameId).getResponse().getContentAsString();
+        assertThat(latecomerView).contains("Dołączyłeś w trakcie tej rundy");
+
+        for (Player answerer : game.answerersInOrder()) {
+            answer(answerer.getNickname(), gameId, answerer.getHand().get(0).getId());
+        }
+        game = gameRepository.findById(gameId).orElseThrow();
+        int rankToAssign = 1;
+        for (Submission submission : List.copyOf(game.getCurrentRound().getSubmissions())) {
+            rank(game.getCurrentRound().getLeader().getNickname(), gameId, submission.getId(), rankToAssign++);
+        }
+        nextRound(game.getCurrentRound().getLeader().getNickname(), gameId);
+
+        game = gameRepository.findById(gameId).orElseThrow();
+        assertThat(game.getCurrentRound().getNumber()).isEqualTo(2);
+        assertThat(latecomer.getHand()).hasSize(7);
+        assertThat(game.answerersInOrder()).anyMatch(p -> p.getNickname().equals("Latecomer"));
     }
 
     // --- Admin role (README § 5) — web-layer behavior GameServiceTest can't see: rendered HTML,

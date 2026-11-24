@@ -108,7 +108,7 @@ a potem dla każdej: poszerz → zaktualizuj dane → zwęż, tak jak wyżej.
   - [x] TV pokazuje aktualnego admina / „Brak admina” (`tv.html`).
   - [x] Dobrowolne przekazanie roli admina konkretnej osobie bez wychodzenia z gry (`GameService.transferAdmin`, `POST /games/{id}/transfer-admin`) — wcześniej poza zakresem MVP, teraz zrobione.
 - [x] **Do 10 graczy** — `game.players.max` w `application.yaml` (nie osobny `Game.MAX_PLAYERS`, konfiguracja już to obsługiwała). Sprawdzone: darmowe pakiety (Generyczny + Dla dzieci) mają tylko 45 kart-odpowiedzi, czyli przy 10 graczach (70 kart na start) recykling (`GameService.drawCards`, już istniejący mechanizm) włącza się od razu przy pierwszym rozdaniu, nie gdzieś w 15. rundzie — nic się nie wywala, ale powtórki są bardziej widoczne. Realne rozwiązanie to więcej kart w pakietach (BIZNES.md/treść), nie kod.
-- [ ] Gracz dołączający w trakcie gry wchodzi od następnej rundy.
+- [x] Gracz dołączający w trakcie gry wchodzi od następnej rundy. `GameService.join` nie blokuje już dołączania poza LOBBY (tylko `FINISHED`); `Player.joinedAtRound` wyklucza nowego gracza z `Game.answerersInOrder()` na tę jedną rundę (brak ręki, nie czeka się na jego odpowiedź) — dostaje pełną rękę i wchodzi normalnie od następnej. `game.html` pokazuje mu „Dołączyłeś w trakcie tej rundy — zagrasz od następnej".
 - [ ] Prowadzący znika w trakcie rundy → po timeoucie lub decyzją ownera runda pominięta, prowadzenie przechodzi dalej.
 - [ ] Ekran TV: kod QR do dołączania na `/games/{id}/tv`.
 - [x] **Liczba rund wybierana przy tworzeniu gry** (1..`game.max-total-rounds`, formularz podsuwa 10) — `Game.totalRounds`, `GameService.createGame`. Dziś przy tworzeniu, nie w panelu ustawień lobby.

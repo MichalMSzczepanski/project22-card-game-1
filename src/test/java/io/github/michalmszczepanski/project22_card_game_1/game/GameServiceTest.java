@@ -374,6 +374,40 @@ class GameServiceTest {
     }
 
     @Test
+    void joiningMidGameExcludesThePlayerFromTheCurrentRoundOnly() {
+        Game game = createGame(freePacks());
+        gameService.join(game.getId(), "Ala");
+        gameService.join(game.getId(), "Bartek");
+        gameService.join(game.getId(), "Celina");
+        startGame(game);
+
+        Player latecomer = gameService.join(game.getId(), "Dawid");
+        assertThat(latecomer.getHand()).isEmpty();
+        assertThat(latecomer.getJoinedAtRound()).isEqualTo(game.getCurrentRound().getNumber());
+        assertThat(game.answerersInOrder()).noneMatch(p -> p.getId().equals(latecomer.getId()));
+
+        playOneRound(game);
+        nextRound(game);
+
+        assertThat(game.getCurrentRound().getNumber()).isEqualTo(2);
+        assertThat(latecomer.getHand()).hasSize(gameProperties.handSize());
+        assertThat(game.answerersInOrder()).anyMatch(p -> p.getId().equals(latecomer.getId()));
+    }
+
+    @Test
+    void cannotJoinAFinishedGame() {
+        Game game = createGame(freePacks());
+        gameService.join(game.getId(), "Ala");
+        gameService.join(game.getId(), "Bartek");
+        gameService.join(game.getId(), "Celina");
+        gameService.endGame(game.getId(), game.getPlayers().get(0).getId());
+
+        assertThatThrownBy(() -> gameService.join(game.getId(), "TooLate"))
+                .isInstanceOf(InvalidGameActionException.class)
+                .hasMessage("Gra już się zakończyła, nie można dołączyć.");
+    }
+
+    @Test
     void onlyAdminCanStartGame() {
         Game game = createGame(freePacks());
         Player admin = gameService.join(game.getId(), "Ala");

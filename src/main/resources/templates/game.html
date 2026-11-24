@@ -149,7 +149,11 @@
         <i class="bi bi-check-circle-fill"></i> Odpowiedź wysłana. Czekamy na innych.
     </div>
 
-    <div th:if="${view.inGame() and !view.isLeader() and !view.hasSubmitted()}">
+    <div th:if="${view.inGame() and view.waitingToJoinNextRound()}" class="alert alert-secondary text-center">
+        <i class="bi bi-hourglass-split"></i> Dołączyłeś w trakcie tej rundy — zagrasz od następnej.
+    </div>
+
+    <div th:if="${view.inGame() and !view.isLeader() and !view.hasSubmitted() and !view.waitingToJoinNextRound()}">
         <p class="fw-semibold">Wybierz kartę jako odpowiedź:</p>
         <form class="card-form mb-2" method="post" th:each="card : ${view.hand()}"
               th:action="@{/games/{id}/answers(id=${view.gameId()})}">

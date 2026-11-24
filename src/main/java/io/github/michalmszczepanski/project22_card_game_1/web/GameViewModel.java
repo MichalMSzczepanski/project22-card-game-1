@@ -50,7 +50,8 @@ public record GameViewModel(
         String adminNickname,
         boolean hasAdmin,
         boolean canTakeOverAdmin,
-        boolean canAdvanceRound
+        boolean canAdvanceRound,
+        boolean waitingToJoinNextRound
 ) {
 
     public record PlayerRow(String id, String nickname, int points, boolean leader, boolean me) {
@@ -84,6 +85,9 @@ public record GameViewModel(
 
         boolean isLeader = me.isPresent() && round != null && round.getLeader().getId().equals(me.get().getId());
         boolean hasSubmitted = me.isPresent() && round != null && round.hasSubmitted(me.get());
+        boolean waitingToJoinNextRound = me.isPresent() && round != null
+                && me.get().getJoinedAtRound() != null
+                && me.get().getJoinedAtRound().equals(round.getNumber());
 
         List<HandCard> hand = List.of();
         List<RankTarget> rankTargets = List.of();
@@ -200,7 +204,8 @@ public record GameViewModel(
                 adminNickname,
                 game.hasAdmin(),
                 canTakeOverAdmin,
-                canAdvanceRound
+                canAdvanceRound,
+                waitingToJoinNextRound
         );
     }
 

@@ -41,6 +41,16 @@ public class Player {
     private int joinOrder;
 
     /**
+     * Null if joined in the LOBBY (the normal case). Otherwise the number of the round that was
+     * current when this player joined mid-game — they sit out exactly that one round (no hand yet,
+     * excluded from {@link Game#answerersInOrder()}) and join properly from the next one. Never
+     * cleared afterwards: once the round number moves past it, the comparison just stops matching.
+     */
+    @Getter
+    @Setter
+    private Integer joinedAtRound;
+
+    /**
      * True once the player has left (explicitly, or pruned as disconnected). The row is kept
      * rather than deleted once the game has started, since past Submissions still reference it —
      * left players are just filtered out of everything "current" (scoreboard, turn order, leader rotation).

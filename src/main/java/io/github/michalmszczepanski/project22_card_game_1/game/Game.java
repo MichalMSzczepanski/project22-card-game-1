@@ -26,6 +26,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
@@ -166,10 +167,15 @@ public class Game {
         return players.stream().filter(p -> !p.isLeft()).toList();
     }
 
-    /** Active players other than the current round's leader, in join order. */
+    /**
+     * Active players other than the current round's leader, in join order — also excludes
+     * anyone who joined mid-game during this exact round (README TODO: they sit this one out,
+     * no hand yet, join properly from the next round — see {@link Player#getJoinedAtRound()}).
+     */
     public List<Player> answerersInOrder() {
         return activePlayers().stream()
                 .filter(p -> currentRound == null || !p.getId().equals(currentRound.getLeader().getId()))
+                .filter(p -> currentRound == null || !Objects.equals(p.getJoinedAtRound(), currentRound.getNumber()))
                 .toList();
     }
 
