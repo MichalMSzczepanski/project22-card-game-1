@@ -98,24 +98,19 @@ public class Game {
     private List<CardPack> activePacks = new ArrayList<>();
 
     /**
-     * Card ids already drawn this game, so the same card isn't dealt twice before the pool is
-     * exhausted. LAZY on purpose: with EAGER, committing a new {@code currentRound} (a
-     * {@code @OneToOne(cascade=ALL, orphanRemoval=true)} replacement) in the same flush as
-     * additions to this collection silently drops all but one of them — see
-     * GameServiceMultiTransactionTest for the repro and GameService.dealUpToHandSize for where
-     * it's read (always from inside an active transaction, so laziness is never an issue here).
+     * Question card ids already drawn this game, so the same black card isn't shown twice before
+     * the pool is exhausted (then recycled — only one is ever active at a time, so unlike answer
+     * cards there's no "two players holding it at once" risk). LAZY on purpose: with EAGER,
+     * committing a new {@code currentRound} (a {@code @OneToOne(cascade=ALL, orphanRemoval=true)}
+     * replacement) in the same flush as additions to this collection silently drops all but one
+     * of them — see GameServiceMultiTransactionTest for the repro. Answer cards get the stricter,
+     * never-recycled, per-player version of this instead: {@link Player#getUsedAnswerCardIds()}.
      */
     @ElementCollection(fetch = FetchType.LAZY)
     @CollectionTable(name = "game_used_question_cards", joinColumns = @JoinColumn(name = "game_id"))
     @Column(name = "card_id")
     @Getter
     private final Set<Long> usedQuestionCardIds = new HashSet<>();
-
-    @ElementCollection(fetch = FetchType.LAZY)
-    @CollectionTable(name = "game_used_answer_cards", joinColumns = @JoinColumn(name = "game_id"))
-    @Column(name = "card_id")
-    @Getter
-    private final Set<Long> usedAnswerCardIds = new HashSet<>();
 
     /** Nickname/timestamp of the most recent departure, so everyone else can be shown a brief banner. */
     @Getter

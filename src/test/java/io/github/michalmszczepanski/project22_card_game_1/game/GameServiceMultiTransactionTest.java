@@ -16,11 +16,12 @@ import static org.assertj.core.api.Assertions.assertThat;
  * here commits for real, round-tripping through separate transactions exactly like real HTTP
  * requests do. This is the only way to catch a real regression that was hiding behind the
  * single-shared-session trick: committing a new Round (a @OneToOne(cascade=ALL,
- * orphanRemoval=true) replacement) in the same flush as additions to Game's
- * usedAnswerCardIds/usedQuestionCardIds (@ElementCollection) silently dropped all but one of
- * those additions. That corrupted the "don't redeal the same card" tracking without an obvious
- * symptom until, purely by chance, a later draw collided with an "untracked" already-dealt
- * card and crashed on the unique constraint — see GameService.dealAndCommit for the fix.
+ * orphanRemoval=true) replacement) in the same flush as additions to an @ElementCollection
+ * (Game.usedQuestionCardIds, and now also Player.usedAnswerCardIds — the per-player "never
+ * redeal this card to them" history) silently dropped all but one of those additions. That
+ * corrupted the "don't redeal the same card" tracking without an obvious symptom until, purely
+ * by chance, a later draw collided with an "untracked" already-dealt card and crashed on the
+ * unique constraint. Fixed by fetching both collections LAZY instead of EAGER.
  */
 @SpringBootTest
 class GameServiceMultiTransactionTest {

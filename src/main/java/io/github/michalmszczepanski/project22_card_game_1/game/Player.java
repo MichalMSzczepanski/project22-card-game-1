@@ -1,8 +1,10 @@
 package io.github.michalmszczepanski.project22_card_game_1.game;
 
 import io.github.michalmszczepanski.project22_card_game_1.card.Card;
+import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.ElementCollection;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
@@ -16,7 +18,9 @@ import lombok.Setter;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 @Entity
@@ -99,6 +103,18 @@ public class Player {
             inverseJoinColumns = @JoinColumn(name = "card_id"))
     @Getter
     private final List<Card> hand = new ArrayList<>();
+
+    /**
+     * Every answer card this player has ever been dealt, this game — never cleared, so a card
+     * they already had (played, swapped away, or still holding) can never be dealt to them again.
+     * LAZY like {@code Game.usedAnswerCardIds}, same reasoning (README "Znana pułapka"):
+     * EAGER would risk losing entries in a flush that also replaces a {@code @OneToOne} child.
+     */
+    @ElementCollection(fetch = FetchType.LAZY)
+    @CollectionTable(name = "player_used_answer_cards", joinColumns = @JoinColumn(name = "player_id"))
+    @Column(name = "card_id")
+    @Getter
+    private final Set<Long> usedAnswerCardIds = new HashSet<>();
 
     public Player(String nickname, Long appUserId) {
         this.id = UUID.randomUUID().toString();

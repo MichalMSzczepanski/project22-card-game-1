@@ -3,6 +3,8 @@ package io.github.michalmszczepanski.project22_card_game_1.game;
 import io.github.michalmszczepanski.project22_card_game_1.card.Card;
 import io.github.michalmszczepanski.project22_card_game_1.card.CardPack;
 import io.github.michalmszczepanski.project22_card_game_1.card.CardPackRepository;
+import io.github.michalmszczepanski.project22_card_game_1.card.CardRepository;
+import io.github.michalmszczepanski.project22_card_game_1.card.CardType;
 import io.github.michalmszczepanski.project22_card_game_1.card.PackAudience;
 import io.github.michalmszczepanski.project22_card_game_1.settings.AppSettingsService;
 import io.github.michalmszczepanski.project22_card_game_1.stats.GameScoreRecordRepository;
@@ -13,7 +15,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -47,6 +52,19 @@ class GameServiceTest {
 
     @Autowired
     private AppSettingsService appSettingsService;
+
+    @Autowired
+    private CardRepository cardRepository;
+
+    /** A fresh, free ANSWER-only pack with exactly {@code answerCardCount} cards — for precisely sizing supply. */
+    private CardPack packWithAnswerCards(int answerCardCount) {
+        CardPack pack = cardPackRepository.save(new CardPack("Testowy-" + answerCardCount, true, BigDecimal.ZERO, PackAudience.FAMILY));
+        for (int i = 0; i < answerCardCount; i++) {
+            cardRepository.save(new Card("Odpowiedź " + i, CardType.ANSWER, pack));
+        }
+        cardRepository.save(new Card("Pytanie testowe ___", CardType.QUESTION, pack));
+        return pack;
+    }
 
     private List<CardPack> freePacks() {
         return cardPackRepository.findAll().stream().filter(CardPack::isFree).toList();
@@ -350,6 +368,84 @@ class GameServiceTest {
         assertThatThrownBy(() -> gameService.swapHand(game.getId(), a1.getId()))
                 .isInstanceOf(InvalidGameActionException.class)
                 .hasMessageContaining("raz na grę");
+    }
+
+    @Test
+    void noTwoPlayersHoldTheSameAnswerCardAtOnce() {
+        Game game = createGame(freePacks());
+        gameService.join(game.getId(), "Ala");
+        gameService.join(game.getId(), "Bartek");
+        gameService.join(game.getId(), "Celina");
+        startGame(game);
+
+        List<Long> allHeldCardIds = game.activePlayers().stream()
+                .flatMap(p -> p.getHand().stream())
+                .map(Card::getId)
+                .toList();
+
+        assertThat(allHeldCardIds).doesNotHaveDuplicates();
+    }
+
+    @Test
+    void anAnswerCardNeverReturnsToThePlayerWhoAlreadyHadItEvenAcrossManyRounds() {
+        // Sized so cards genuinely get recycled between players within a few rounds (initial
+        // deal of 3x7=21 leaves only 9 spare), but not so tight it hits the hard "exhausted" error.
+        Game game = createGame(List.of(packWithAnswerCards(30)));
+        gameService.join(game.getId(), "Ala");
+        gameService.join(game.getId(), "Bartek");
+        gameService.join(game.getId(), "Celina");
+        startGame(game);
+
+        for (int round = 1; round <= 4; round++) {
+            Game current = gameService.getGame(game.getId());
+
+            // Invariant 1: nobody's hand overlaps anybody else's, this round.
+            List<Long> allHeldCardIds = current.activePlayers().stream()
+                    .flatMap(p -> p.getHand().stream()).map(Card::getId).toList();
+            assertThat(allHeldCardIds).doesNotHaveDuplicates();
+
+            // Invariant 2: every card currently held was, naturally, already recorded as "seen by me".
+            for (Player player : current.activePlayers()) {
+                Set<Long> handIds = player.getHand().stream().map(Card::getId).collect(Collectors.toSet());
+                assertThat(player.getUsedAnswerCardIds()).containsAll(handIds);
+            }
+
+            List<Player> answerers = current.answerersInOrder();
+            for (Player answerer : answerers) {
+                gameService.submitAnswer(game.getId(), answerer.getId(), answerer.getHand().get(0).getId());
+            }
+            Round round1 = current.getCurrentRound();
+            int rank = 1;
+            for (Submission s : List.copyOf(round1.getSubmissions())) {
+                gameService.submitRanking(game.getId(), round1.getLeader().getId(), s.getId(), rank++);
+            }
+            nextRound(game);
+        }
+
+        // Invariant 3: across the whole game, no player's "ever held" history could have grown
+        // past what distinct cards they could legitimately have seen — i.e. it only ever grows,
+        // and (trivially, since it's a Set) never records a size inconsistent with real draws.
+        for (Player player : game.activePlayers()) {
+            assertThat(player.getUsedAnswerCardIds()).containsAll(player.getHand().stream().map(Card::getId).toList());
+        }
+    }
+
+    @Test
+    void runningOutOfUniqueAnswerCardsForAPlayerThrowsInsteadOfRepeatingOne() {
+        // Exactly enough for the initial deal (3 players x 7 cards), no spare. Swapping a whole
+        // hand then has nowhere to draw from: the only freed cards are the ones this player just
+        // held (permanently excluded for them), and every other card is held by the other two.
+        Game game = createGame(List.of(packWithAnswerCards(gameProperties.handSize() * 3)));
+        gameService.join(game.getId(), "Ala");
+        gameService.join(game.getId(), "Bartek");
+        gameService.join(game.getId(), "Celina");
+        startGame(game);
+
+        Player answerer = game.answerersInOrder().get(0);
+
+        assertThatThrownBy(() -> gameService.swapHand(game.getId(), answerer.getId()))
+                .isInstanceOf(InvalidGameActionException.class)
+                .hasMessageContaining("unikalnych kart odpowiedzi");
     }
 
     @Test

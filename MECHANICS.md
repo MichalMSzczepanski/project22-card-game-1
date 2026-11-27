@@ -20,9 +20,9 @@
 - W każdej rundzie gracz **zrzuca dokładnie jedną** kartę — tę, którą zagrał.
 - Przed kolejną rundą dobiera jedną nową — ręka zawsze wraca do 7.
 - Prowadzący w swojej rundzie nic nie zrzuca.
-- Zagrana karta nie wraca do talii do końca gry (brak powtórek).
+- **Brak powtórek, dwa niezmienniki (zawsze):** (1) karta, którą dany gracz już kiedyś miał w tej grze (zagrał, zrzucił przy wymianie ręki, albo wciąż trzyma), nigdy nie wraca do **tego samego** gracza; (2) dwóch graczy nigdy nie trzyma tej samej karty naraz. Zrzucona karta **może** trafić do innego gracza — to nie jest „karta spalona na zawsze dla wszystkich”, tylko „nigdy nie wraca do tego, kto ją miał”. Gdy wybrane pakiety się wyczerpią dla danego gracza — gra zgłasza błąd, nie powtarza karty po cichu (README TODO „Talia przy pełnym stole”).
 - **Pusta karta** — raz na całą grę, zamiast karty z ręki gracz może zagrać własną, wpisaną odpowiedź. Na rankingu wygląda i liczy się jak każda inna — anonimowo, bez oznaczenia.
-- **Wymiana ręki** — raz na całą grę gracz może zrzucić całą rękę (gdy nic nie pasuje) i dobrać nową; zrzucone karty nie wracają do talii.
+- **Wymiana ręki** — raz na całą grę gracz może zrzucić całą rękę (gdy nic nie pasuje) i dobrać nową; podlega tym samym dwóm niezmiennikom wyżej.
 
 ## Przebieg rundy
 1. **Pytanie** — prowadzący dostaje kartę-pytanie, widzą ją wszyscy (także TV).

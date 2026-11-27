@@ -402,38 +402,65 @@ public class GameService {
 
     private void dealUpToHandSize(Game game, Player player) {
         int needed = gameProperties.handSize() - player.getHand().size();
-        player.getHand().addAll(drawCards(game, CardType.ANSWER, needed));
+        player.getHand().addAll(drawAnswerCardsForPlayer(game, player, needed));
     }
 
+    /** Only ever called for CardType.QUESTION — one shared black card per round, never this player's own. */
     private Card drawCard(Game game, CardType type) {
-        return drawCards(game, type, 1).get(0);
-    }
-
-    /**
-     * Draws {@code count} cards the game hasn't already used, recycling (allowing repeats)
-     * once the pool is exhausted. Queries the candidate pool once up front rather than once
-     * per card — same result either way, just fewer round trips for a multi-card deal.
-     */
-    private List<Card> drawCards(Game game, CardType type, int count) {
-        if (count <= 0) {
-            return List.of();
-        }
         List<Long> packIds = effectivePacks(game).stream().map(CardPack::getId).toList();
         List<Card> candidates = cardRepository.findByTypeAndEnabledTrueAndPack_IdIn(type, packIds);
         if (candidates.isEmpty()) {
             throw new InvalidGameActionException("Brak kart tego typu w wybranych pakietach.");
         }
 
-        Set<Long> used = type == CardType.QUESTION ? game.getUsedQuestionCardIds() : game.getUsedAnswerCardIds();
+        Set<Long> used = game.getUsedQuestionCardIds();
+        List<Card> fresh = candidates.stream().filter(c -> !used.contains(c.getId())).toList();
+        if (fresh.isEmpty()) {
+            used.clear();
+            fresh = candidates;
+        }
+        Card chosen = fresh.get(random.nextInt(fresh.size()));
+        used.add(chosen.getId());
+        return chosen;
+    }
+
+    /**
+     * Draws {@code count} answer cards for exactly this player, enforcing two invariants no
+     * player should ever see violated: a card they've already had (dealt, played or swapped
+     * away) this game never comes back to them ({@link Player#getUsedAnswerCardIds()}, never
+     * cleared), and no two players hold the same card at the same time (excludes whatever's
+     * currently in anyone's hand). Unlike question cards, there's no recycling fallback — once
+     * the active packs can't satisfy that for a player, it's a real content-shortage (README
+     * TODO "Talia przy pełnym stole"), not something to paper over with a repeat.
+     */
+    private List<Card> drawAnswerCardsForPlayer(Game game, Player player, int count) {
+        if (count <= 0) {
+            return List.of();
+        }
+        List<Long> packIds = effectivePacks(game).stream().map(CardPack::getId).toList();
+        List<Card> candidates = cardRepository.findByTypeAndEnabledTrueAndPack_IdIn(CardType.ANSWER, packIds);
+        if (candidates.isEmpty()) {
+            throw new InvalidGameActionException("Brak kart tego typu w wybranych pakietach.");
+        }
+
+        Set<Long> heldByAnyone = game.activePlayers().stream()
+                .flatMap(p -> p.getHand().stream())
+                .map(Card::getId)
+                .collect(Collectors.toSet());
+        Set<Long> playerHistory = player.getUsedAnswerCardIds();
+
         List<Card> drawn = new ArrayList<>(count);
         for (int i = 0; i < count; i++) {
-            List<Card> fresh = candidates.stream().filter(c -> !used.contains(c.getId())).toList();
+            List<Card> fresh = candidates.stream()
+                    .filter(c -> !heldByAnyone.contains(c.getId()))
+                    .filter(c -> !playerHistory.contains(c.getId()))
+                    .toList();
             if (fresh.isEmpty()) {
-                used.clear();
-                fresh = candidates;
+                throw new InvalidGameActionException(
+                        "Wybrane pakiety nie mają już unikalnych kart odpowiedzi dla tego gracza.");
             }
             Card chosen = fresh.get(random.nextInt(fresh.size()));
-            used.add(chosen.getId());
+            playerHistory.add(chosen.getId());
             drawn.add(chosen);
         }
         return drawn;
